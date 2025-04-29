@@ -184,6 +184,7 @@ cards:
 layout:
   width: "320"
 ```
+<img width="1043" alt="card-example" src="https://github.com/user-attachments/assets/87633825-55bc-4819-a67d-1a79030ad8a1" />
 
 ### Customizing Range Values
 Adjust the `max` values in the `series` section based on your internet provider’s speed plan:

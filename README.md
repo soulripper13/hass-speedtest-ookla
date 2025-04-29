@@ -186,6 +186,18 @@ layout:
 ```
 <img width="1043" alt="card-example" src="https://github.com/user-attachments/assets/87633825-55bc-4819-a67d-1a79030ad8a1" />
 
+### Speedtest Script For Speedtest Button
+Add this to scripts (via UI or YAML):
+```yaml
+sequence:
+  - action: homeassistant.update_entity
+    data:
+      entity_id:
+        - sensor.speedtest_download
+        - sensor.speedtest_upload
+        - sensor.speedtest_ping
+```
+
 ### Customizing Range Values
 Adjust the `max` values in the `series` section based on your internet provider’s speed plan:
 - **Ping (`sensor.speedtest_ping`)**: Set `max` to a reasonable latency for your connection (e.g., 100 ms for most broadband). Adjust `color_threshold` values (e.g., green for <50 ms, orange for 50–75 ms, red for >75 ms).

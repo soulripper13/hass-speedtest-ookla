@@ -1,2 +1,3 @@
 #!/bin/bash
-/config/shell/speedtest.bin --accept-license --accept-gdpr --format=json
+# Run speedtest-cli with JSON output
+/config/shell/speedtest.bin --accept-license --accept-gdpr --format=json "$@"

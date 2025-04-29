@@ -121,7 +121,7 @@ cards:
       - entity: sensor.speedtest_ping
         name: Ping
         min: 1
-        max: 100
+        max: 200
         color_threshold:
           - value: 1
             color: green
@@ -134,26 +134,26 @@ cards:
       - entity: sensor.speedtest_download
         name: Download
         min: 0
-        max: 500
+        max: 1000
         color_threshold:
           - value: 0
             color: red
-          - value: 250
-            color: orange
           - value: 500
+            color: orange
+          - value: 1000
             color: green
         show:
           header_color_threshold: true
       - entity: sensor.speedtest_upload
         name: Upload
         min: 0
-        max: 50
+        max: 100
         color_threshold:
           - value: 0
             color: red
-          - value: 25
-            color: orange
           - value: 50
+            color: orange
+          - value: 100
             color: green
         show:
           header_color_threshold: true
@@ -177,26 +177,15 @@ cards:
     type: button
     tap_action:
       action: perform-action
-      perform_action: script.speedtest
+      perform_action: ookla_speedtest.run_speedtest
       target: {}
     name: Speedtest
-    entity: script.speedtest
 layout:
   width: "320"
+
 ```
 <img width="1043" alt="card-example" src="https://github.com/user-attachments/assets/87633825-55bc-4819-a67d-1a79030ad8a1" />
 
-### Speedtest Script For Speedtest Button
-Add this to scripts (via UI or YAML):
-```yaml
-sequence:
-  - action: homeassistant.update_entity
-    data:
-      entity_id:
-        - sensor.speedtest_download
-        - sensor.speedtest_upload
-        - sensor.speedtest_ping
-```
 
 ### Customizing Range Values
 Adjust the `max` values in the `series` section based on your internet provider’s speed plan:

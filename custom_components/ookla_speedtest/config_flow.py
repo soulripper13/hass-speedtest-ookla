@@ -3,6 +3,7 @@
 import subprocess
 import json
 import logging
+import os
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -31,6 +32,7 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Run setup script if not already set up
         if not hasattr(self, "_setup_done"):
+            await self._ensure_executable_permissions()
             await self._run_setup_script()
             self._setup_done = True
 
@@ -84,6 +86,27 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=schema,
             errors=errors,
         )
+
+    async def _ensure_executable_permissions(self):
+        """Ensure shell scripts have executable permissions."""
+        _LOGGER.debug("Ensuring executable permissions for shell scripts")
+        script_dir = "/config/custom_components/ookla_speedtest/shell"
+        scripts = ["setup_speedtest.sh", "launch_speedtest.sh", "list_servers.sh"]
+        try:
+            for script in scripts:
+                script_path = os.path.join(script_dir, script)
+                if os.path.exists(script_path):
+                    # Use os.chmod with stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                    os.chmod(script_path, 0o755)
+                    _LOGGER.debug(f"Set executable permissions for {script_path}")
+                else:
+                    _LOGGER.warning(f"Script not found: {script_path}")
+        except OSError as e:
+            _LOGGER.error(f"Failed to set executable permissions: {e}")
+            raise config_entries.ConfigFlowError(
+                "Failed to set executable permissions for shell scripts. "
+                "Run 'chmod +x /config/custom_components/ookla_speedtest/shell/*.sh' manually."
+            )
 
     async def _run_setup_script(self):
         """Run the setup script to prepare the environment."""

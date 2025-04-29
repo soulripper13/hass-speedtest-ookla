@@ -1,3 +1,5 @@
+"""Constants for the Ookla Speedtest integration."""
+
 DOMAIN = "ookla_speedtest"
 CONF_SERVER_ID = "server_id"
 CONF_MANUAL = "manual"

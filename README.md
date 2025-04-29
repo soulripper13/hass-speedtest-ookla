@@ -7,7 +7,7 @@ This custom integration uses the official Ookla `speedtest-cli` binary to measur
 1. **Install HACS** if not already installed.
 2. Add this repository to HACS:
    - Go to HACS > Integrations > Explore & Download Repositories.
-   - Add the custom repository: `https://github.com/yourusername/hass-speedtest-ookla`.
+   - Add the custom repository: `https://github.com/soulripper13/hass-speedtest-ookla`.
 3. Install the "Ookla Speedtest" integration.
 4. Download the `speedtest-cli` binary:
    - Visit [Ookla Speedtest CLI](https://www.speedtest.net/apps/cli).

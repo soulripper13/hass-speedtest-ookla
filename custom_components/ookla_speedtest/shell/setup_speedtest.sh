@@ -15,49 +15,35 @@ log_error() {
 # Function to check for required commands
 check_prerequisites() {
     local missing_cmds=""
-    for cmd in curl tar chmod; do
+    for cmd in curl tar; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
             missing_cmds="$missing_cmds $cmd"
         fi
     done
     if [ -n "$missing_cmds" ]; then
         log_error "Required commands not found:$missing_cmds"
-        log_error "Install them (e.g., 'apk add curl tar coreutils' in Alpine-based systems) and re-run this script."
+        log_error "Install them (e.g., 'apk add curl tar' in Alpine-based systems) and re-run this script."
         exit 1
     fi
 }
 
-# Function to ensure shell scripts are executable
-ensure_executable_permissions() {
-    echo "Ensuring executable permissions for shell scripts..."
+# Function to check if shell scripts are executable
+check_executable_permissions() {
+    echo "Checking executable permissions for shell scripts..."
     local scripts=("setup_speedtest.sh" "launch_speedtest.sh" "list_servers.sh")
-    local success=true
-
-    # Try setting permissions in SCRIPT_DIR
+    local non_executable=""
     for script in "${scripts[@]}"; do
-        if [ -f "${SCRIPT_DIR}/${script}" ]; then
-            chmod +x "${SCRIPT_DIR}/${script}" 2>/dev/null || {
-                log_error "Failed to set executable permission for ${SCRIPT_DIR}/${script}"
-                success=false
-            }
-        else
-            log_error "Script not found: ${SCRIPT_DIR}/${script}"
-            success=false
+        if [ -f "${SCRIPT_DIR}/${script}" ] && [ ! -x "${SCRIPT_DIR}/${script}" ]; then
+            non_executable="$non_executable ${SCRIPT_DIR}/${script}"
+        fi
+        if [ -f "${SHELL_DIR}/${script}" ] && [ ! -x "${SHELL_DIR}/${script}" ]; then
+            non_executable="$non_executable ${SHELL_DIR}/${script}"
         fi
     done
-
-    # If any permission setting failed in SCRIPT_DIR, try SHELL_DIR
-    if [ "$success" = false ]; then
-        echo "Attempting to set permissions in ${SHELL_DIR}..."
-        for script in "${scripts[@]}"; do
-            if [ -f "${SHELL_DIR}/${script}" ]; then
-                chmod +x "${SHELL_DIR}/${script}" 2>/dev/null || {
-                    log_error "Failed to set executable permission for ${SHELL_DIR}/${script}"
-                    log_error "Run 'chmod +x /config/custom_components/ookla_speedtest/shell/*.sh' manually."
-                    exit 1
-                }
-            fi
-        done
+    if [ -n "$non_executable" ]; then
+        log_error "Non-executable scripts detected:$non_executable"
+        log_error "Run 'chmod +x /config/custom_components/ookla_speedtest/shell/*.sh' and try again."
+        exit 1
     fi
 }
 
@@ -115,8 +101,8 @@ mkdir -p "${SHELL_DIR}" || {
     exit 1
 }
 
-# Ensure shell scripts are executable
-ensure_executable_permissions
+# Check shell scripts are executable
+check_executable_permissions
 
 # Copy shell scripts to /config/shell if not already present
 echo "Copying shell scripts to ${SHELL_DIR}..."
@@ -143,13 +129,13 @@ else
     echo "speedtest.bin already exists in ${SHELL_DIR}, skipping download."
 fi
 
-# Set executable permissions for speedtest.bin
-echo "Setting executable permissions for speedtest.bin..."
-chmod +x "${SHELL_DIR}/speedtest.bin" 2>/dev/null || {
-    log_error "Failed to set executable permissions for ${SHELL_DIR}/speedtest.bin."
+# Check speedtest.bin is executable
+echo "Checking executable permissions for speedtest.bin..."
+if [ ! -x "${SHELL_DIR}/speedtest.bin" ]; then
+    log_error "speedtest.bin is not executable."
     log_error "Run 'chmod +x /config/shell/speedtest.bin' manually."
     exit 1
-}
+fi
 
 # Accept EULA for speedtest.bin
 echo "Accepting Ookla EULA for speedtest.bin..."

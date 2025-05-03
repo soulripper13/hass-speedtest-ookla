@@ -3,7 +3,13 @@
 The Ookla Speedtest integration lets you track your internet speed in Home Assistant using the official Ookla `speedtest-cli` tool. It creates sensors for ping, download, and upload speeds, with options for automatic or manual testing.
 
 ## Features
-- Sensors for ping (ms), download (Mbit/s), and upload (Mbit/s).
+- Sensors for:
+  - **Ping** (ms): Measures latency.
+  - **Download** (Mbit/s): Measures download speed.
+  - **Upload** (Mbit/s): Measures upload speed.
+  - **Jitter** (ms): Measures network stability by tracking variations in ping times.
+  - **Server**: Displays the name and location of the speed test server used, similar to the Ookla website.
+  - **ISP**: Shows the name of your Internet Service Provider.
 - Choose the closest server or a specific server by ID.
 - Automatic tests with a default interval of 24 hours.
 - Manual mode for on-demand tests via automations or services.

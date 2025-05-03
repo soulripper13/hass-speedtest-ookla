@@ -21,7 +21,6 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -40,6 +39,9 @@ async def async_setup_entry(
         OoklaSpeedtestSensor(coordinator, entry, "ping", "Ping", "ms"),
         OoklaSpeedtestSensor(coordinator, entry, "download", "Download", "Mbit/s"),
         OoklaSpeedtestSensor(coordinator, entry, "upload", "Upload", "Mbit/s"),
+        OoklaSpeedtestSensor(coordinator, entry, "jitter", "Jitter", "ms"),
+        OoklaSpeedtestSensor(coordinator, entry, "server", "Server", None),
+        OoklaSpeedtestSensor(coordinator, entry, "isp", "ISP", None),
     ]
 
     async_add_entities(sensors, update_before_add=not manual)
@@ -54,7 +56,6 @@ async def async_setup_entry(
     # Trigger initial update if not manual
     if not manual:
         await coordinator.async_config_entry_first_refresh()
-
 
 class SpeedtestCoordinator(DataUpdateCoordinator):
     """Coordinator to manage Speedtest updates."""
@@ -91,12 +92,11 @@ class SpeedtestCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Speedtest completed successfully")
             return {
                 "ping": round(result["ping"]["latency"], 2),
-                "download": round(
-                    result["download"]["bandwidth"] * 8 / 1000000, 2
-                ),  # Convert bytes/s to Mbit/s
-                "upload": round(
-                    result["upload"]["bandwidth"] * 8 / 1000000, 2
-                ),  # Convert bytes/s to Mbit/s
+                "download": round(result["download"]["bandwidth"] * 8 / 1000000, 2),
+                "upload": round(result["upload"]["bandwidth"] * 8 / 1000000, 2),
+                "jitter": round(result["ping"]["jitter"], 2),
+                "server": f"{result['server']['name']} ({result['server']['location']}, {result['server']['country']})",
+                "isp": result["isp"],
             }
         except subprocess.CalledProcessError as e:
             _LOGGER.error(f"Speedtest failed: {e.stderr}")
@@ -107,7 +107,6 @@ class SpeedtestCoordinator(DataUpdateCoordinator):
         except Exception as e:
             _LOGGER.error(f"Unexpected error during speedtest: {e}")
             return None
-
 
 class OoklaSpeedtestSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Speedtest sensor."""

@@ -126,6 +126,11 @@ class OoklaSpeedtestSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = f"Speedtest {name}"
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_unit_of_measurement = unit
+        # Set specific icons for ISP and server sensors
+        if key == "isp":
+            self._attr_icon = "mdi:earth"
+        elif key == "server":
+            self._attr_icon = "mdi:server-outline"
 
     @property
     def state(self):

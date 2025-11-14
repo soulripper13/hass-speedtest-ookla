@@ -30,7 +30,7 @@ It provides eight sensors:
 ---
 ### Installation
 #### Manual installation
-1. Copy the `custom_components/speedtest_net` folder to your Home Assistant `config/custom_components` directory.
+1. Copy the `custom_components/hass_speedtest_ookla` folder to your Home Assistant `config/custom_components` directory.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & Services → Add Integration → Speedtest.net**.
 4. Configure update interval or leave the default.
@@ -44,7 +44,7 @@ The preferred way is to use HACS:
 
 ---
 ### Usage
-After setup, you will see eight sensors (entity IDs may include the domain prefix, e.g. `sensor.speedtest_net_download`):
+After setup, you will see eight sensors (entity IDs may include the domain prefix, e.g. `sensor.hass_speedtest_ookla_download`):
 - `sensor.download`
 - `sensor.upload`
 - `sensor.ping`
@@ -56,19 +56,19 @@ After setup, you will see eight sensors (entity IDs may include the domain prefi
 
 You can use them in automations, Lovelace dashboards, or for monitoring your internet connection.
 The integration also exposes two services:
-- `speedtest_net.perform_test`
-- `speedtest_net.update_binary`
+- `hass_speedtest_ookla.perform_test`
+- `hass_speedtest_ookla.update_binary`
 
 You can call `perform_test` manually to trigger a speed test and update all sensors.
 To call the service:
 1. Go to **Developer Tools → Services**.
-2. Select `speedtest_net.perform_test` from the dropdown.
+2. Select `hass_speedtest_ookla.perform_test` from the dropdown.
 3. Call the service (no parameters required).
 
 You can call `update_binary` manually to update the Ookla Speedtest CLI.
 To call the service:
 1. Go to **Developer Tools → Services**.
-2. Select `speedtest_net.update_binary` from the dropdown.
+2. Select `hass_speedtest_ookla.update_binary` from the dropdown.
 3. Call the service (no parameters required).
 
 If you prefer to disable automatic polling:
@@ -92,13 +92,13 @@ Now sensors update only when the service is manually triggered.
 [hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge
 [hacs-repo-badge]: https://my.home-assistant.io/badges/hacs_repository.svg
-[hacs-repo]: https://my.home-assistant.io/redirect/hacs_repository/?owner=soulripper13&repository=hacs-speedtest&category=integration
+[hacs-repo]: https://my.home-assistant.io/redirect/hacs_repository/?owner=soulripper13&repository=hass-speedtest-ookla&category=integration
 [config-flow-badge]: https://my.home-assistant.io/badges/config_flow_start.svg
-[config-flow]: https://my.home-assistant.io/redirect/config_flow_start?domain=speedtest_net
-[commits-shield]: https://img.shields.io/github/commit-activity/m/soulripper13/hacs-speedtest?style=for-the-badge
-[commits]: https://github.com/soulripper13/hacs-speedtest/commits/main
+[config-flow]: https://my.home-assistant.io/redirect/config_flow_start?domain=hass_speedtest_ookla
+[commits-shield]: https://img.shields.io/github/commit-activity/m/soulripper13/hass-speedtest-ookla?style=for-the-badge
+[commits]: https://github.com/soulripper13/hass-speedtest-ookla/commits/main
 [forum-shield]: https://img.shields.io/badge/Community-Forum-blue?style=for-the-badge&logo=home-assistant
 [forum]: https://community.home-assistant.io/
-[license-shield]: https://img.shields.io/github/license/soulripper13/hacs-speedtest?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/v/release/soulripper13/hacs-speedtest?style=for-the-badge
-[releases]: https://github.com/soulripper13/hacs-speedtest/releases
+[license-shield]: https://img.shields.io/github/license/soulripper13/hass-speedtest-ookla?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/v/release/soulripper13/hass-speedtest-ookla?style=for-the-badge
+[releases]: https://github.com/soulripper13/hass-speedtest-ookla/releases

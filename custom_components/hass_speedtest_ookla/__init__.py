@@ -9,6 +9,7 @@ from pathlib import Path
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
@@ -31,8 +32,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Download binary if not present
     binary_path = await _download_binary(hass, entry)
     if not binary_path:
-        _LOGGER.error("Failed to download/extract Speedtest CLI binary")
-        return False
+        raise ConfigEntryNotReady("Failed to download/extract Speedtest CLI binary")
 
     # Store binary path in hass.data (accessed async by platforms)
     hass.data.setdefault(DOMAIN, {})

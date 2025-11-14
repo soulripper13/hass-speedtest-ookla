@@ -37,9 +37,12 @@ It provides eight sensors:
 #### HACS installation (preferred)
 The preferred way is to use HACS:
 1. Search and download this integration to your HA installation via HACS, or click:
+   
    [![Open HACS Repository][hacs-repo-badge]][hacs-repo]
-2. Restart Home Assistant
-3. Add this integration to Home Assistant, or click:
+   
+3. Restart Home Assistant
+4. Add this integration to Home Assistant, or click:
+   
    [![Add Integration][config-flow-badge]][config-flow]
 
 ---

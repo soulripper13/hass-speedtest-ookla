@@ -1,5 +1,7 @@
 {
-  "name": "Speedtest.net",
+  "name": "Ookla Speedtest",
   "content_in_root": false,
+  "filename": "ookla_speedtest",
+  "homeassistant": "2023.6.0",
   "render_readme": true
 }

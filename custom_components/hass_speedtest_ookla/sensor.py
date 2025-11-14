@@ -96,12 +96,9 @@ SENSORS = (
 
 
 class SpeedtestSensorData(DataUpdateCoordinator):
-    """Data for Speedtest.net sensors."""
+    """Coordinator for Speedtest.net data."""
 
-    def __init__(
-        self, hass: HomeAssistant, entry: ConfigEntry, binary_path: str
-    ) -> None:
-        """Initialize the coordinator."""
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, binary_path: str) -> None:
         self._binary_path = binary_path
         self.entry = entry
 
@@ -120,9 +117,8 @@ class SpeedtestSensorData(DataUpdateCoordinator):
         )
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from Speedtest CLI binary."""
         try:
-            # Get current version
+            # Version detection
             proc = await asyncio.create_subprocess_exec(
                 self._binary_path,
                 "--version",
@@ -130,152 +126,101 @@ class SpeedtestSensorData(DataUpdateCoordinator):
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, _ = await proc.communicate()
-            version_output = stdout.decode("utf-8", errors="ignore").strip()
-            current_version = version_output.split(" ")[1]
+            version_text = stdout.decode("utf-8", errors="ignore").strip()
+            current_version = version_text.replace("Speedtest by Ookla", "").strip()
 
-            # Get latest version
+            # Fetch latest version
             session = async_get_clientsession(self.hass)
             async with session.get("https://packagecloud.io/ookla/speedtest-cli/") as resp:
-                if resp.status == 200:
-                    html = await resp.text()
-                    match = re.search(r"(\d+\.\d+\.\d+\.\d+-\d+)", html)
-                    latest_version = match.group(1) if match else "unknown"
-                else:
-                    latest_version = "unknown"
+                html = await resp.text()
+                match = re.search(r"(\d+\.\d+\.\d+\.\d+-\d+)", html)
+                latest_version = match.group(1) if match else "unknown"
 
-            # Run speedtest
+            # Run speedtest with JSON
             proc = await asyncio.create_subprocess_exec(
                 self._binary_path,
                 "--accept-license",
                 "--accept-gdpr",
-                "--json",
+                "--format=json",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await proc.communicate()
-            output = stdout.decode("utf-8", errors="ignore")
+            output = stdout.decode("utf-8", errors="ignore").strip()
+            err = stderr.decode("utf-8", errors="ignore").strip()
 
-            _LOGGER.debug("Speedtest CLI Raw Output: %s", output)
-            if stderr:
-                _LOGGER.debug("Speedtest CLI Stderr: %s", stderr.decode("utf-8", errors="ignore"))
+            # Detect invalid (help menu)
+            if "Usage:" in output or "Valid output formats" in output:
+                _LOGGER.error("Speedtest CLI does not support JSON output. Installed version is outdated: %s", output)
+                raise UpdateFailed("Outdated Speedtest CLI - install latest binary from speedtest.net")
 
-            data = _parse_output(output, SENSORS)
+            data = _parse_output(output)
             data[ATTR_CURRENT_VERSION] = current_version
             data[ATTR_LATEST_VERSION] = latest_version
+
             return data
 
         except Exception as err:
-            _LOGGER.error("Error running Speedtest.net CLI binary: %s", err)
-            raise UpdateFailed(f"Failed to update: {err}")
+            raise UpdateFailed(f"Failed to update Speedtest: {err}") from err
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-) -> None:
-    """Set up the Speedtest.net sensors."""
-    hass_data = hass.data[DOMAIN][entry.entry_id]
-    binary_path = hass_data["binary_path"]
-
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+    binary_path = hass.data[DOMAIN][entry.entry_id]["binary_path"]
     coordinator = SpeedtestSensorData(hass, entry, binary_path)
 
     try:
         await coordinator.async_config_entry_first_refresh()
     except UpdateFailed:
-        raise ConfigEntryNotReady("Speedtest.net initial run failed")
+        raise ConfigEntryNotReady("Speedtest CLI initial run failed")
 
-    hass_data["coordinator"] = coordinator
+    hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
 
-    sensors = [
-        SpeedtestSensor(coordinator, description)
-        for description in SENSORS
-    ]
-    async_add_entities(sensors)
+    entities = [SpeedtestSensor(coordinator, desc) for desc in SENSORS]
+    async_add_entities(entities)
 
 
 class SpeedtestSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a Speedtest.net sensor."""
+    """Single sensor entity for Speedtest."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
 
-    def __init__(
-        self,
-        coordinator: SpeedtestSensorData,
-        description: SensorEntityDescription,
-    ) -> None:
+    def __init__(self, coordinator, description):
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = f"{DOMAIN}.{description.key}"
+        self._attr_unique_id = f"{DOMAIN}_{description.key}"
 
     @property
-    def native_value(self) -> StateType | str | None:
-        raw_value = self.coordinator.data.get(self.entity_description.key)
-        if raw_value is None or raw_value == "unknown":
-            if self.entity_description.native_unit_of_measurement:
-                return None
-            return "unknown"
-
-        try:
-            parsed = float(raw_value)
-            return round(parsed, 2)
-        except ValueError:
-            return raw_value
+    def native_value(self):
+        val = self.coordinator.data.get(self.entity_description.key)
+        if isinstance(val, (int, float)):
+            return round(float(val), 2)
+        return val
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
+    def extra_state_attributes(self):
         return {
-            key: self.coordinator.data.get(key, "unknown")
-            for key in self.coordinator.data
-            if key != self.entity_description.key
+            k: v for k, v in self.coordinator.data.items()
+            if k != self.entity_description.key
         }
 
 
-# ---------------------------------------------------------------------------
-# NEW ROBUST JSON PARSER (handles all new Ookla formats)
-# ---------------------------------------------------------------------------
-
-def _parse_output(output: str, sensors: tuple[SensorEntityDescription, ...]) -> dict[str, str]:
-    """Parse Speedtest CLI output. Compatible with all new Ookla JSON formats."""
-    data = {desc.key: "unknown" for desc in sensors}
-
-    # Extract valid JSON even if warnings or logs exist
+def _parse_output(output: str) -> dict[str, Any]:
+    """Parse Ookla Speedtest JSON output safely."""
     try:
-        start = output.find("{")
-        end = output.rfind("}") + 1
-        if start == -1 or end == -1:
-            raise ValueError
-        clean_json = output[start:end]
-        json_output = json.loads(clean_json)
-    except Exception:
+        json_data = json.loads(output)
+    except json.JSONDecodeError:
         _LOGGER.error("Failed to parse Speedtest.net CLI output: %s", output)
-        return data
+        raise UpdateFailed("Invalid JSON output (CLI likely outdated)")
 
-    # DOWNLOAD
-    dl = json_output.get("download", {})
-    if "bandwidth" in dl:
-        data[ATTR_DOWNLOAD] = dl["bandwidth"] * 8 / 1_000_000
-    elif "bytes" in dl and "elapsed" in dl:
-        seconds = max(dl["elapsed"] / 1000, 0.001)
-        data[ATTR_DOWNLOAD] = (dl["bytes"] * 8) / seconds / 1_000_000
+    download = json_data.get("download", {}).get("bandwidth", 0) * 8 / 1_000_000
+    upload = json_data.get("upload", {}).get("bandwidth", 0) * 8 / 1_000_000
 
-    # UPLOAD
-    ul = json_output.get("upload", {})
-    if "bandwidth" in ul:
-        data[ATTR_UPLOAD] = ul["bandwidth"] * 8 / 1_000_000
-    elif "bytes" in ul and "elapsed" in ul:
-        seconds = max(ul["elapsed"] / 1000, 0.001)
-        data[ATTR_UPLOAD] = (ul["bytes"] * 8) / seconds / 1_000_000
-
-    # PING/JITTER
-    ping = json_output.get("ping", {})
-    data[ATTR_PING] = ping.get("latency", "unknown")
-    data[ATTR_JITTER] = ping.get("jitter", "unknown")
-
-    # ISP
-    data[ATTR_ISP] = json_output.get("isp", "unknown")
-
-    # SERVER NAME
-    server = json_output.get("server", {})
-    data[ATTR_SERVER] = server.get("name", "unknown")
-
-    return data
+    return {
+        ATTR_DOWNLOAD: download,
+        ATTR_UPLOAD: upload,
+        ATTR_PING: json_data.get("ping", {}).get("latency"),
+        ATTR_JITTER: json_data.get("ping", {}).get("jitter"),
+        ATTR_ISP: json_data.get("isp"),
+        ATTR_SERVER: json_data.get("server", {}).get("name"),
+    }

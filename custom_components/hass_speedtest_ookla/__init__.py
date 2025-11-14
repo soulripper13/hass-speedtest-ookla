@@ -145,6 +145,27 @@ async def _download_binary(hass: HomeAssistant, entry: ConfigEntry) -> str | Non
 
         os.chmod(str(extracted_binary), 0o755)
         tgz_path.unlink()  # Clean up tgz
+
+        # Log the version of the downloaded binary
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                str(extracted_binary),
+                "--version",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await proc.communicate()
+            if proc.returncode == 0:
+                version_output = stdout.decode("utf-8", errors="ignore").strip()
+                _LOGGER.info("Downloaded Speedtest CLI binary version: %s", version_output)
+            else:
+                _LOGGER.warning(
+                    "Could not get version of downloaded Speedtest CLI binary. Stderr: %s",
+                    stderr.decode("utf-8", errors="ignore").strip(),
+                )
+        except Exception as version_err:
+            _LOGGER.warning("Error getting version of downloaded Speedtest CLI binary: %s", version_err)
+
         _LOGGER.info("Extracted and made executable Speedtest CLI binary at %s", extracted_binary)
         return str(extracted_binary)
 

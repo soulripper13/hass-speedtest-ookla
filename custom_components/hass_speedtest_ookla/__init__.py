@@ -19,7 +19,7 @@ from .const import (
     DEFAULT_AUTO_UPDATE,
     DEFAULT_SCAN_INTERVAL,
     BINARY_NAME,
-    BINARY_URL,
+    BINARY_URL_BASE,
     BINARY_DIR,
 )
 
@@ -113,6 +113,39 @@ async def _update_binary(hass: HomeAssistant) -> None:
 
 async def _download_binary(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
     """Download and extract the Speedtest CLI binary if not present."""
+    # Determine arch and os
+    system = platform.system()
+    machine = platform.machine()
+
+    os_map = {
+        "Linux": "linux",
+        "Darwin": "macos",
+    }
+    arch_map = {
+        "x86_64": "x86_64",
+        "aarch64": "aarch64",
+        "armv7l": "armhf",
+        "arm": "arm",
+        "i386": "i386",
+        "i686": "i386",
+    }
+
+    os_str = os_map.get(system)
+    arch_str = arch_map.get(machine)
+
+    _LOGGER.debug("Detected system: %s, machine: %s", system, machine)
+    _LOGGER.debug("Mapped OS: %s, Mapped Arch: %s", os_str, arch_str)
+
+    if not os_str or not arch_str:
+        _LOGGER.error(
+            "Unsupported system: %s %s. Cannot download Speedtest CLI.",
+            system,
+            machine,
+        )
+        return None
+
+    binary_url = f"{BINARY_URL_BASE}{os_str}-{arch_str}.tgz"
+    _LOGGER.debug("Constructed binary URL: %s", binary_url)
     binary_dir = Path(hass.config.path(BINARY_DIR))
 
     def _mkdir():
@@ -133,10 +166,10 @@ async def _download_binary(hass: HomeAssistant, entry: ConfigEntry) -> str | Non
     session = async_get_clientsession(hass)
     tgz_path = binary_dir / "speedtest.tgz"
     try:
-        async with session.get(BINARY_URL) as resp:
+        async with session.get(binary_url) as resp:
             if resp.status != 200:
                 _LOGGER.error(
-                    "Failed to download tgz from %s: %s", BINARY_URL, resp.status
+                    "Failed to download tgz from %s: %s", binary_url, resp.status
                 )
                 return None
             content = await resp.read()

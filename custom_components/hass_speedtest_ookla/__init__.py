@@ -97,8 +97,8 @@ async def _update_binary(hass: HomeAssistant) -> None:
     binary_dir = Path(hass.config.path(BINARY_DIR))
     binary_path = binary_dir / BINARY_NAME
 
-    if binary_path.exists():
-        binary_path.unlink()
+    if await hass.async_add_executor_job(binary_path.exists):
+        await hass.async_add_executor_job(binary_path.unlink)
         _LOGGER.debug("Removed existing Speedtest CLI binary at %s", binary_path)
 
     entry = next(iter(hass.config_entries.async_entries(DOMAIN)))
@@ -110,14 +110,23 @@ async def _update_binary(hass: HomeAssistant) -> None:
     _LOGGER.info("Speedtest CLI binary updated successfully. Restarting integration.")
     await hass.config_entries.async_reload(entry.entry_id)
 
+
 async def _download_binary(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
     """Download and extract the Speedtest CLI binary if not present."""
     binary_dir = Path(hass.config.path(BINARY_DIR))
-    binary_dir.mkdir(exist_ok=True)
+
+    def _mkdir():
+        binary_dir.mkdir(exist_ok=True)
+
+    await hass.async_add_executor_job(_mkdir)
     binary_path = binary_dir / BINARY_NAME
 
-    if binary_path.exists() and os.access(str(binary_path), os.X_OK):
-        _LOGGER.debug("Speedtest CLI binary already exists and is executable at %s", binary_path)
+    if await hass.async_add_executor_job(
+        binary_path.exists
+    ) and await hass.async_add_executor_job(os.access, str(binary_path), os.X_OK):
+        _LOGGER.debug(
+            "Speedtest CLI binary already exists and is executable at %s", binary_path
+        )
         return str(binary_path)
 
     # Download tgz
@@ -126,25 +135,30 @@ async def _download_binary(hass: HomeAssistant, entry: ConfigEntry) -> str | Non
     try:
         async with session.get(BINARY_URL) as resp:
             if resp.status != 200:
-                _LOGGER.error("Failed to download tgz from %s: %s", BINARY_URL, resp.status)
+                _LOGGER.error(
+                    "Failed to download tgz from %s: %s", BINARY_URL, resp.status
+                )
                 return None
             content = await resp.read()
-        tgz_path.write_bytes(content)
+        await hass.async_add_executor_job(tgz_path.write_bytes, content)
         _LOGGER.debug("Downloaded Speedtest CLI tgz to %s", tgz_path)
 
         # Extract tgz
-        with tarfile.open(tgz_path, 'r:gz') as tf:
-            tf.extractall(binary_dir)
+        def _extract_tgz():
+            with tarfile.open(tgz_path, "r:gz") as tf:
+                tf.extractall(binary_dir)
+
+        await hass.async_add_executor_job(_extract_tgz)
         _LOGGER.debug("Extracted Speedtest CLI tgz contents to %s", binary_dir)
 
         # Find and chmod the binary
         extracted_binary = binary_dir / BINARY_NAME
-        if not extracted_binary.exists():
+        if not await hass.async_add_executor_job(extracted_binary.exists):
             _LOGGER.error("No executable found in tgz")
             return None
 
-        os.chmod(str(extracted_binary), 0o755)
-        tgz_path.unlink()  # Clean up tgz
+        await hass.async_add_executor_job(os.chmod, str(extracted_binary), 0o755)
+        await hass.async_add_executor_job(tgz_path.unlink)  # Clean up tgz
 
         # Log the version of the downloaded binary
         try:
@@ -157,20 +171,28 @@ async def _download_binary(hass: HomeAssistant, entry: ConfigEntry) -> str | Non
             stdout, stderr = await proc.communicate()
             if proc.returncode == 0:
                 version_output = stdout.decode("utf-8", errors="ignore").strip()
-                _LOGGER.info("Downloaded Speedtest CLI binary version: %s", version_output)
+                _LOGGER.info(
+                    "Downloaded Speedtest CLI binary version: %s", version_output
+                )
             else:
                 _LOGGER.warning(
                     "Could not get version of downloaded Speedtest CLI binary. Stderr: %s",
                     stderr.decode("utf-8", errors="ignore").strip(),
                 )
         except Exception as version_err:
-            _LOGGER.warning("Error getting version of downloaded Speedtest CLI binary: %s", version_err)
+            _LOGGER.warning(
+                "Error getting version of downloaded Speedtest CLI binary: %s",
+                version_err,
+            )
 
-        _LOGGER.info("Extracted and made executable Speedtest CLI binary at %s", extracted_binary)
+        _LOGGER.info(
+            "Extracted and made executable Speedtest CLI binary at %s",
+            extracted_binary,
+        )
         return str(extracted_binary)
 
     except Exception as err:
         _LOGGER.error("Error downloading/extracting binary: %s", err)
-        if tgz_path.exists():
-            tgz_path.unlink()
+        if await hass.async_add_executor_job(tgz_path.exists):
+            await hass.async_add_executor_job(tgz_path.unlink)
         return None

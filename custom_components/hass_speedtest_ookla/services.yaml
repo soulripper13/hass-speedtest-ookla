@@ -1,0 +1,2 @@
+update_binary:
+  description: "Updates the Speedtest CLI binary to the latest version."

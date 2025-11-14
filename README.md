@@ -87,7 +87,7 @@ Now sensors update only when the service is manually triggered.
 - [Ookla Speedtest CLI](https://www.speedtest.net/apps/cli)
 - [Home Assistant](https://www.home-assistant.io)
 - [HACS Integration Guide](https://hacs.xyz/docs/faq/custom_repositories/)
-- Developed by [katoa-sultan](https://github.com/katoa-sultan)
+- Developed by [katoa-sultan](https://github.com/soulripper13)
 ---
 [hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge

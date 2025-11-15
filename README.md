@@ -1,6 +1,6 @@
 # Ookla Speedtest Integration for Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge)
+![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge)
 [![GitHub release](https://img.shields.io/github/release/soulripper13/hass-speedtest-ookla.svg)](https://github.com/soulripper13/hass-speedtest-ookla/releases)
 [![GitHub issues](https://img.shields.io/github/issues/soulripper13/hass-speedtest-ookla.svg)](https://github.com/soulripper13/hass-speedtest-ookla/issues)
 

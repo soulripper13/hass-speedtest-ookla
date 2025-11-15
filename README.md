@@ -1,8 +1,6 @@
 # Ookla Speedtest Integration for Home Assistant
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge)
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store (HACS).](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=soulripper13&repository=hass-speedtest-ookla&category=integration)
-[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=ookla_speedtest)
 [![GitHub release](https://img.shields.io/github/release/soulripper13/hass-speedtest-ookla.svg)](https://github.com/soulripper13/hass-speedtest-ookla/releases)
 [![GitHub issues](https://img.shields.io/github/issues/soulripper13/hass-speedtest-ookla.svg)](https://github.com/soulripper13/hass-speedtest-ookla/issues)
 
@@ -33,15 +31,20 @@ This integration is best installed via the [Home Assistant Community Store (HACS
     *   Go to **HACS > Integrations > ... (three dots) > Custom repositories**.
     *   Add this repository's URL: `https://github.com/soulripper13/hass-speedtest-ookla`
     *   Select the category **Integration** and click **Add**.
+  
+      [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store (HACS).](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=soulripper13&repository=hass-speedtest-ookla&category=integration)
 
-2.  **Install the Integration**:
+
+      [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=ookla_speedtest)
+
+3.  **Install the Integration**:
     *   In HACS, search for "Ookla Speedtest" and click **Download**.
     *   Follow the prompts to complete the download.
 
-3.  **Restart Home Assistant**:
+4.  **Restart Home Assistant**:
     *   Go to **Settings > System** and click the **Restart** button.
 
-4.  **Add the Integration**:
+5.  **Add the Integration**:
     *   Go to **Settings > Devices & Services > Add Integration**.
     *   Search for and select **Ookla Speedtest**.
     *   The setup wizard will guide you through the final configuration steps.

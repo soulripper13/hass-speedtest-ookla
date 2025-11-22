@@ -105,6 +105,9 @@ Add the following YAML to your Lovelace dashboard:
 ```yaml
 type: custom:layout-card
 layout_type: custom:vertical-layout
+layout:
+  width: 320
+  card_margin: 0px
 cards:
   - type: custom:apexcharts-card
     chart_type: radialBar
@@ -123,9 +126,9 @@ cards:
         color_threshold:
           - value: 1
             color: green
-          - value: 50
-            color: orange
           - value: 100
+            color: orange
+          - value: 200
             color: red
         show:
           header_color_threshold: true
@@ -145,16 +148,22 @@ cards:
       - entity: sensor.speedtest_upload
         name: Upload
         min: 0
-        max: 100
+        max: 110
         color_threshold:
           - value: 0
             color: red
-          - value: 50
+          - value: 55
             color: orange
-          - value: 100
+          - value: 110
             color: green
         show:
           header_color_threshold: true
+      - entity: sensor.speedtest_jitter
+        name: Jitter
+        color: aqua
+        show:
+          header_color_threshold: true
+          in_chart: false
     apex_config:
       plotOptions:
         radialBar:
@@ -170,15 +179,43 @@ cards:
         show: false
       fill:
         type: gradient
+    card_mod:
+      style: |
+        :host {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+  - type: entities
+    entities:
+      - entity: sensor.speedtest_isp
+        name: ISP
+        icon: false
+      - entity: sensor.speedtest_server
+        name: Server
+        icon: false
+    card_mod:
+      style: |
+        :host {
+          margin: 0 !important;
+          padding: 0 !important;
+          --ha-card-border-width: 0;
+        }
   - show_name: true
     show_icon: false
     type: button
     tap_action:
-      action: call-service
-      service: script.speedtest
-    name: Run Speedtest Now
-layout:
-  width: "320"
+      action: perform-action
+      perform_action: ookla_speedtest.run_speedtest
+      target: {}
+    name: Speedtest
+    card_mod:
+      style: |
+        :host {
+          margin: 0 !important;
+          padding: 0 !important;
+          --ha-card-border-width: 0;
+        }
+
 ```
 
 ### Customizing Card Ranges

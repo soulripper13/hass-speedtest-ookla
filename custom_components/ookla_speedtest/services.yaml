@@ -1,3 +1,4 @@
-ookla_speedtest.run_speedtest:
+run_speedtest:
   description: Manually trigger an Ookla Speedtest run.
-  fields: {} 
+  action: ookla_speedtest.run_speedtest
+  fields: {}  # No fields since your service uses empty data

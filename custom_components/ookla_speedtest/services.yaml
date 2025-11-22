@@ -1,0 +1,3 @@
+ookla_speedtest.run_speedtest:
+  description: Manually trigger an Ookla Speedtest run.
+  fields: {} 

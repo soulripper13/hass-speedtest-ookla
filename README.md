@@ -29,12 +29,15 @@ The Ookla Speedtest integration lets you track your internet speed in Home Assis
 
 ## Recent Updates
 
-### Version 1.1.7 (Latest)
+### Version 2.0.0 (Latest)
 - **Fixed**: Resolved 500 Internal Server Error when clicking Configure button
+- **Fixed**: Config flow handler registration for improved compatibility
 - **New**: Added user-friendly descriptions for all configuration options
 - **New**: Configuration changes now automatically reload the integration
+- **New**: Complete UI-based configuration and reconfiguration support
 - **Improved**: Options flow now properly handles entry.options with fallback to entry.data for backwards compatibility
 - **Enhanced**: Better error messages and validation during setup
+- **Enhanced**: Added comprehensive translation files (strings.json, en.json)
 
 ## Installation
 
@@ -266,7 +269,7 @@ To get the most accurate visual feedback, adjust the `max` and `color_threshold`
 ## Troubleshooting
 
 -   **Setup Fails**: Check the Home Assistant logs at **Settings > System > Logs** for any errors related to `custom_components.ookla_speedtest`. Ensure that `curl` and `tar` are available in your Home Assistant environment.
--   **Configure Button Error (500 Error)**: This issue has been fixed in version 1.1.7. If you're still experiencing this, ensure you've updated to the latest version and restarted Home Assistant.
+-   **Configure Button Error (500 Error)**: This issue has been fixed in version 2.0.0. If you're still experiencing this, ensure you've updated to the latest version and restarted Home Assistant.
 -   **No Server List**: If the server list doesn't load, try using the "Closest Server" option or find a manual server ID from the [Speedtest Servers list](https://c.speedtest.net/speedtest-servers-static.php).
 -   **Configuration Changes Not Applied**: Make sure you click "Submit" in the configuration dialog. The integration will automatically reload with the new settings.
 -   **Card Not Displaying**: Ensure `custom:apexcharts-card` and `custom:layout-card` are correctly installed and that you have cleared your browser cache.

@@ -11,7 +11,7 @@ import logging
 import subprocess
 from typing import Any
 
->>>>>>> 753d9b0 (Fix config flow 500 error and add user-friendly descriptions)
+
 import voluptuous as vol
 
 from homeassistant import config_entries

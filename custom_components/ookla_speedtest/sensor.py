@@ -1,18 +1,5 @@
 """Sensor platform for Ookla Speedtest integration."""
 
-<<<<<<< HEAD
-import logging
-
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-
-from .const import DOMAIN, CONF_MANUAL
-from . import SpeedtestCoordinator
-
-=======
 from __future__ import annotations
 
 import logging
@@ -41,7 +28,6 @@ from .const import (
     CONF_MANUAL,
     DOMAIN,
 )
->>>>>>> 753d9b0 (Fix config flow 500 error and add user-friendly descriptions)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,27 +38,6 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-<<<<<<< HEAD
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    manual = entry.data.get(CONF_MANUAL, True)
-
-    sensors = [
-        OoklaSpeedtestSensor(coordinator, entry, "ping", "Ping", "ms"),
-        OoklaSpeedtestSensor(coordinator, entry, "download", "Download", "Mbit/s"),
-        OoklaSpeedtestSensor(coordinator, entry, "upload", "Upload", "Mbit/s"),
-        OoklaSpeedtestSensor(coordinator, entry, "jitter", "Jitter", "ms"),
-        OoklaSpeedtestSensor(coordinator, entry, "server", "Server", None),
-        OoklaSpeedtestSensor(coordinator, entry, "isp", "ISP", None),
-    ]
-
-    async_add_entities(sensors, update_before_add=not manual)
-    _LOGGER.debug("Sensors added successfully")
-
-
-class OoklaSpeedtestSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a Speedtest sensor."""
-
-=======
     coordinator: SpeedtestCoordinator = hass.data[DOMAIN][entry.entry_id]
     manual = entry.data.get(CONF_MANUAL, True)
 
@@ -118,33 +83,19 @@ class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], SensorEntity
 
     _attr_has_entity_name = True
 
->>>>>>> 753d9b0 (Fix config flow 500 error and add user-friendly descriptions)
     def __init__(
         self,
         coordinator: SpeedtestCoordinator,
         entry: ConfigEntry,
         key: str,
         name: str,
-<<<<<<< HEAD
-        unit: str,
-=======
         unit: str | None,
         icon: str,
->>>>>>> 753d9b0 (Fix config flow 500 error and add user-friendly descriptions)
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._entry = entry
         self._key = key
-<<<<<<< HEAD
-        self._attr_name = f"Speedtest {name}"
-        self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_unit_of_measurement = unit
-        _LOGGER.debug(f"Sensor initialized: {self._attr_name}")
-
-    @property
-    def state(self):
-=======
         self._attr_name = name
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_native_unit_of_measurement = unit
@@ -167,7 +118,6 @@ class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], SensorEntity
 
     @property
     def native_value(self) -> Any:
->>>>>>> 753d9b0 (Fix config flow 500 error and add user-friendly descriptions)
         """Return the state of the sensor."""
         if self.coordinator.data is None:
             return None

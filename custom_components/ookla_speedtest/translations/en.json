@@ -1,0 +1,53 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure Ookla Speedtest",
+        "description": "Set up the Ookla Speedtest integration to monitor your internet connection speed.",
+        "data": {
+          "server_id": "Speedtest Server",
+          "manual_server_id": "Manual Server ID",
+          "manual": "Manual Mode",
+          "scan_interval": "Scan Interval (minutes)"
+        },
+        "data_description": {
+          "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
+          "manual_server_id": "Enter a specific server ID number (only used if 'Manual Server ID' is selected above). Find server IDs at speedtest.net/servers.",
+          "manual": "When enabled, speed tests will only run when manually triggered via the 'run_speedtest' service. When disabled, tests run automatically based on the scan interval.",
+          "scan_interval": "How often to automatically run speed tests (in minutes). Default is 1440 minutes (24 hours). Only applies when Manual Mode is disabled. Lower values will use more bandwidth."
+        }
+      }
+    },
+    "error": {
+      "manual_server_id": "Please enter a valid numeric server ID",
+      "server_id": "Invalid server ID selected"
+    },
+    "abort": {
+      "single_instance_allowed": "Only a single instance is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Ookla Speedtest Options",
+        "description": "Update your Ookla Speedtest configuration. Changes will reload the integration.",
+        "data": {
+          "server_id": "Speedtest Server",
+          "manual_server_id": "Manual Server ID",
+          "manual": "Manual Mode",
+          "scan_interval": "Scan Interval (minutes)"
+        },
+        "data_description": {
+          "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
+          "manual_server_id": "Enter a specific server ID number (only used if 'Manual Server ID' is selected above). Find server IDs at speedtest.net/servers.",
+          "manual": "When enabled, speed tests will only run when manually triggered via the 'run_speedtest' service. When disabled, tests run automatically based on the scan interval.",
+          "scan_interval": "How often to automatically run speed tests (in minutes). Default is 1440 minutes (24 hours). Only applies when Manual Mode is disabled. Lower values will use more bandwidth."
+        }
+      }
+    },
+    "error": {
+      "manual_server_id": "Please enter a valid numeric server ID",
+      "server_id": "Invalid server ID selected"
+    }
+  }
+}

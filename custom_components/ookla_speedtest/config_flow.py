@@ -133,9 +133,10 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow):
             _LOGGER.debug("Setup script completed: %s", process.stdout)
         except subprocess.CalledProcessError as e:
             _LOGGER.error("Setup script failed: %s", e.stderr)
-            raise config_entries.ConfigFlowError(
+            _LOGGER.error(
                 "Failed to run setup script. Check logs and ensure /config/shell/ is writable. "
-                f"Ensure scripts are executable with 'chmod +x {INTEGRATION_SHELL_DIR}/*.sh'."
+                "Ensure scripts are executable with 'chmod +x %s/*.sh'.",
+                INTEGRATION_SHELL_DIR,
             )
 
 class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):

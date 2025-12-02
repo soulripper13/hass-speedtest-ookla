@@ -9,18 +9,32 @@ The Ookla Speedtest integration lets you track your internet speed in Home Assis
 <img width="1043" alt="card-example" src="https://github.com/user-attachments/assets/87633825-55bc-4819-a67d-1a79030ad8a1" />
 
 ## Features
-- **Sensors for**:
+- **Comprehensive Sensors**:
   - **Ping** (ms): Measures latency.
   - **Download** (Mbit/s): Measures download speed.
   - **Upload** (Mbit/s): Measures upload speed.
   - **Jitter** (ms): Measures network stability by tracking variations in ping times.
   - **Server**: Displays the name and location of the speed test server used.
   - **ISP**: Shows the name of your Internet Service Provider.
-- **Flexible Testing**:
-  - Choose the closest server or a specific server by ID.
-  - Run tests automatically at a configurable interval.
-  - Disable automatic tests and run them on-demand via services or automations.
-- **Service to trigger tests**: `ookla_speedtest.run_speedtest`.
+- **Flexible Testing Options**:
+  - Choose the closest server automatically or select from the 10 nearest servers.
+  - Enter a specific server ID manually for precise testing.
+  - Run tests automatically at a configurable interval (default: 24 hours).
+  - Enable manual mode to run tests only on-demand via services or automations.
+- **User-Friendly Configuration**:
+  - Easy setup with step-by-step guidance and helpful descriptions for each option.
+  - Reconfigure anytime through the Home Assistant UI (Settings > Devices & Services > Ookla Speedtest > Configure).
+  - Automatic integration reload when settings are changed.
+- **Service Integration**: Trigger tests manually using `ookla_speedtest.run_speedtest` service.
+
+## Recent Updates
+
+### Version 1.1.7 (Latest)
+- **Fixed**: Resolved 500 Internal Server Error when clicking Configure button
+- **New**: Added user-friendly descriptions for all configuration options
+- **New**: Configuration changes now automatically reload the integration
+- **Improved**: Options flow now properly handles entry.options with fallback to entry.data for backwards compatibility
+- **Enhanced**: Better error messages and validation during setup
 
 ## Installation
 
@@ -51,11 +65,38 @@ This integration is best installed via the [Home Assistant Community Store (HACS
 
 ## Configuration
 
-During the setup wizard, you can configure the following:
+During the setup wizard, you'll be guided through configuring the integration with helpful descriptions for each option:
 
--   **Server**: Choose "Closest Server" for automatic selection or pick a specific server from the list. If the server list fails to load, you can manually enter a server ID from the [official list](https://c.speedtest.net/speedtest-servers-static.php).
--   **Manual Mode**: Enable this option to disable automatic, scheduled tests. You can then trigger tests using automations or the `ookla_speedtest.run_speedtest` service.
--   **Scan Interval**: If not in manual mode, set the frequency of automatic tests in minutes (default is 1440 minutes, or 24 hours).
+### Configuration Options
+
+-   **Speedtest Server**:
+    - Choose "Closest Server" for automatic selection
+    - Select from the 10 nearest servers (sorted by distance)
+    - Or select "Manual Server ID" to enter a specific server ID
+    - *Tip: Find server IDs at [speedtest.net/servers](https://www.speedtest.net/speedtest-servers-static.php)*
+
+-   **Manual Server ID**:
+    - Only required when "Manual Server ID" is selected above
+    - Enter a specific numeric server ID for precise testing
+
+-   **Manual Mode**:
+    - **Enabled**: Speed tests only run when manually triggered via the `ookla_speedtest.run_speedtest` service
+    - **Disabled**: Tests run automatically based on the scan interval
+    - *Default: Enabled*
+
+-   **Scan Interval** (minutes):
+    - How often to automatically run speed tests (only when Manual Mode is disabled)
+    - *Default: 1440 minutes (24 hours)*
+    - *Warning: Lower values will use more bandwidth*
+
+### Reconfiguring
+
+You can change these settings anytime:
+1. Go to **Settings > Devices & Services**
+2. Find **Ookla Speedtest** in your integrations
+3. Click the **Configure** button
+4. Update your settings
+5. The integration will automatically reload with the new configuration
 
 ## Usage
 
@@ -225,7 +266,9 @@ To get the most accurate visual feedback, adjust the `max` and `color_threshold`
 ## Troubleshooting
 
 -   **Setup Fails**: Check the Home Assistant logs at **Settings > System > Logs** for any errors related to `custom_components.ookla_speedtest`. Ensure that `curl` and `tar` are available in your Home Assistant environment.
+-   **Configure Button Error (500 Error)**: This issue has been fixed in version 1.1.7. If you're still experiencing this, ensure you've updated to the latest version and restarted Home Assistant.
 -   **No Server List**: If the server list doesn't load, try using the "Closest Server" option or find a manual server ID from the [Speedtest Servers list](https://c.speedtest.net/speedtest-servers-static.php).
+-   **Configuration Changes Not Applied**: Make sure you click "Submit" in the configuration dialog. The integration will automatically reload with the new settings.
 -   **Card Not Displaying**: Ensure `custom:apexcharts-card` and `custom:layout-card` are correctly installed and that you have cleared your browser cache.
 
 ## Reporting Issues

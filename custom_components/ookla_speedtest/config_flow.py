@@ -24,7 +24,7 @@ from .helpers import get_speedtest_servers, validate_server_id
 
 _LOGGER = logging.getLogger(__name__)
 
-class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow):
     """Handle a config flow for Ookla Speedtest."""
 
     VERSION = 1

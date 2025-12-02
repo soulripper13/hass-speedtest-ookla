@@ -1,5 +1,4 @@
 """Configuration flow for Ookla Speedtest integration."""
-
 from __future__ import annotations
 
 import logging
@@ -24,7 +23,9 @@ from .helpers import get_speedtest_servers, validate_server_id
 
 _LOGGER = logging.getLogger(__name__)
 
-class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow):
+
+@config_entries.HANDLERS.register(DOMAIN)
+class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Ookla Speedtest."""
 
     VERSION = 1
@@ -139,8 +140,13 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow):
                 INTEGRATION_SHELL_DIR,
             )
 
+
 class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Ookla Speedtest."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

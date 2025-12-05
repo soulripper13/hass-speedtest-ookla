@@ -118,7 +118,7 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> OoklaSpeedtestOptionsFlow:
         """Get the options flow for this handler."""
-        return OoklaSpeedtestOptionsFlow(config_entry)
+        return OoklaSpeedtestOptionsFlow()
 
     async def _run_setup_script(self) -> None:
         """Run the setup script to prepare the environment."""
@@ -143,10 +143,6 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Ookla Speedtest."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

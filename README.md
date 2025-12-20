@@ -1,8 +1,9 @@
 # Ookla Speedtest Integration for Home Assistant
 
-![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/default)
 [![GitHub release](https://img.shields.io/github/release/soulripper13/hass-speedtest-ookla.svg)](https://github.com/soulripper13/hass-speedtest-ookla/releases)
 [![GitHub issues](https://img.shields.io/github/issues/soulripper13/hass-speedtest-ookla.svg)](https://github.com/soulripper13/hass-speedtest-ookla/issues)
+![Downloads](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=Downloads&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.ookla_speedtest.total)
 
 The Ookla Speedtest integration lets you track your internet speed in Home Assistant using the official Ookla `speedtest-cli` tool. It creates sensors for ping, download, and upload speeds, with options for automatic or manual testing.
 

@@ -1,6 +1,5 @@
 {
   "name": "Ookla Speedtest",
-  "zip_release": true,
-  "filename": "ookla_speedtest.zip",
+  "content_in_root": false,
   "render_readme": true
 }

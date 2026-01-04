@@ -9,9 +9,10 @@ from datetime import timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
@@ -29,6 +30,7 @@ from .const import (
     INTEGRATION_SHELL_DIR,
     LAUNCH_SCRIPT_PATH,
     SERVICE_RUN_SPEEDTEST,
+    STARTUP_DELAY,
 )
 from .helpers import validate_server_id
 
@@ -151,8 +153,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         run_speedtest_service,
     )
 
+    # Delay first speedtest in interval mode to avoid blocking HA startup
     if not manual:
-        await coordinator.async_config_entry_first_refresh()
+        async def schedule_first_refresh(_):
+            """Schedule the first speedtest after HA has started."""
+            # Wait for configured delay after HA startup before running first test
+            async def run_first_refresh(_):
+                await coordinator.async_request_refresh()
+
+            async_call_later(hass, STARTUP_DELAY, run_first_refresh)
+
+        # If HA is already started, schedule immediately; otherwise wait for start event
+        if hass.is_running:
+            await schedule_first_refresh(None)
+        else:
+            hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, schedule_first_refresh)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

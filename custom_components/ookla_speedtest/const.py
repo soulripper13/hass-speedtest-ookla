@@ -7,6 +7,7 @@ CONF_SERVER_ID = "server_id"
 CONF_MANUAL = "manual"
 CONF_SCAN_INTERVAL = "scan_interval"
 DEFAULT_SCAN_INTERVAL = 1440  # minutes (24 hours)
+STARTUP_DELAY = 60  # seconds - delay before first speedtest in interval mode
 
 # Service
 SERVICE_RUN_SPEEDTEST = "run_speedtest"

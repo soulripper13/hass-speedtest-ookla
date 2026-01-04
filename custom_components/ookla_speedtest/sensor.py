@@ -25,7 +25,6 @@ from .const import (
     ATTR_PING,
     ATTR_SERVER,
     ATTR_UPLOAD,
-    CONF_MANUAL,
     DOMAIN,
 )
 
@@ -39,7 +38,6 @@ async def async_setup_entry(
 ) -> None:
     """Set up the sensor platform."""
     coordinator: SpeedtestCoordinator = hass.data[DOMAIN][entry.entry_id]
-    manual = entry.data.get(CONF_MANUAL, True)
 
     sensors = [
         OoklaSpeedtestSensor(
@@ -75,7 +73,8 @@ async def async_setup_entry(
         OoklaSpeedtestSensor(coordinator, entry, ATTR_ISP, "ISP", None, "mdi:web"),
     ]
 
-    async_add_entities(sensors, update_before_add=not manual)
+    # Don't update before adding to avoid blocking HA startup
+    async_add_entities(sensors, update_before_add=False)
 
 
 class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], SensorEntity):

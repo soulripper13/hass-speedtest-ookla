@@ -285,3 +285,19 @@ logger:
   logs:
     custom_components.ookla_speedtest: debug
 ```
+
+## Support the Project
+
+If you find this integration helpful and would like to support its development, you can buy me a cup of coffee:
+
+**Solana**
+```
+4jvCR2YFQLqguoyz9qAMPzVbaEcDsG5nzRHFG8SeaeBK
+```
+
+**Bitcoin**
+```
+bc1qvu8a9gdy3dcxa94jge7d3rd7claapsydjsjxn0
+```
+
+Your support is greatly appreciated and helps keep this project maintained and improved!

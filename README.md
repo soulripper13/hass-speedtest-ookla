@@ -5,6 +5,14 @@
 [![GitHub Issues](https://img.shields.io/github/issues/soulripper13/hass-speedtest-ookla.svg?style=for-the-badge)](https://github.com/soulripper13/hass-speedtest-ookla/issues)
 ![Downloads](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=Downloads&suffix=%20installs&cacheSeconds=15600&style=for-the-badge&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.ookla_speedtest.total)
 
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20This%20Project-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://github.com/soulripper13/hass-speedtest-ookla#support-the-project)
+[![Solana](https://img.shields.io/badge/Solana-14F195?style=for-the-badge&logo=solana&logoColor=white)](https://solana.com)
+[![Bitcoin](https://img.shields.io/badge/Bitcoin-FF9900?style=for-the-badge&logo=bitcoin&logoColor=white)](https://bitcoin.org)
+
+**Support Development:** If you find this integration helpful, consider supporting with Solana (`4jvCR2YFQLqguoyz9qAMPzVbaEcDsG5nzRHFG8SeaeBK`) or Bitcoin (`bc1qvu8a9gdy3dcxa94jge7d3rd7claapsydjsjxn0`)
+
+---
+
 The Ookla Speedtest integration lets you track your internet speed in Home Assistant using the official Ookla `speedtest-cli` tool. It creates sensors for ping, download, and upload speeds, with options for automatic or manual testing.
 
 <img width="1043" alt="card-example" src="https://github.com/user-attachments/assets/87633825-55bc-4819-a67d-1a79030ad8a1" />
@@ -285,19 +293,3 @@ logger:
   logs:
     custom_components.ookla_speedtest: debug
 ```
-
-## Support the Project
-
-If you find this integration helpful and would like to support its development, you can buy me a cup of coffee:
-
-**Solana**
-```
-4jvCR2YFQLqguoyz9qAMPzVbaEcDsG5nzRHFG8SeaeBK
-```
-
-**Bitcoin**
-```
-bc1qvu8a9gdy3dcxa94jge7d3rd7claapsydjsjxn0
-```
-
-Your support is greatly appreciated and helps keep this project maintained and improved!

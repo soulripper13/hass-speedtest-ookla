@@ -54,28 +54,28 @@ async def async_setup_entry(
             coordinator, entry, ATTR_PING, "Ping", UnitOfTime.MILLISECONDS, "mdi:speedometer"
         ),
         OoklaSpeedtestSensor(
-            coordinator, entry, ATTR_PING_LOW, "Ping Low", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+            coordinator, entry, ATTR_PING_LOW, "Ping Min", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
         ),
         OoklaSpeedtestSensor(
-            coordinator, entry, ATTR_PING_HIGH, "Ping High", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+            coordinator, entry, ATTR_PING_HIGH, "Ping Max", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
         ),
         OoklaSpeedtestSensor(
-            coordinator, entry, ATTR_DOWNLOAD_LATENCY_IQM, "Ping During Download", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+            coordinator, entry, ATTR_DOWNLOAD_LATENCY_IQM, "Download Ping", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
         ),
         OoklaSpeedtestSensor(
-            coordinator, entry, ATTR_DOWNLOAD_LATENCY_LOW, "Ping Low During Download", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+            coordinator, entry, ATTR_DOWNLOAD_LATENCY_LOW, "Download Ping Min", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
         ),
         OoklaSpeedtestSensor(
-            coordinator, entry, ATTR_DOWNLOAD_LATENCY_HIGH, "Ping High During Download", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+            coordinator, entry, ATTR_DOWNLOAD_LATENCY_HIGH, "Download Ping Max", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
         ),
         OoklaSpeedtestSensor(
-            coordinator, entry, ATTR_UPLOAD_LATENCY_IQM, "Ping During Upload", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+            coordinator, entry, ATTR_UPLOAD_LATENCY_IQM, "Upload Ping", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
         ),
         OoklaSpeedtestSensor(
-            coordinator, entry, ATTR_UPLOAD_LATENCY_LOW, "Ping Low During Upload", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+            coordinator, entry, ATTR_UPLOAD_LATENCY_LOW, "Upload Ping Min", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
         ),
         OoklaSpeedtestSensor(
-            coordinator, entry, ATTR_UPLOAD_LATENCY_HIGH, "Ping High During Upload", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+            coordinator, entry, ATTR_UPLOAD_LATENCY_HIGH, "Upload Ping Max", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
         ),
         OoklaSpeedtestSensor(
             coordinator,
@@ -105,7 +105,7 @@ async def async_setup_entry(
             coordinator,
             entry,
             ATTR_DOWNLOAD_LATENCY_JITTER,
-            "Jitter During Download",
+            "Download Jitter",
             UnitOfTime.MILLISECONDS,
             "mdi:pulse",
             enabled_default = False,
@@ -114,7 +114,7 @@ async def async_setup_entry(
             coordinator,
             entry,
             ATTR_UPLOAD_LATENCY_JITTER,
-            "Jitter During Upload",
+            "Upload Jitter",
             UnitOfTime.MILLISECONDS,
             "mdi:pulse",
             enabled_default = False,

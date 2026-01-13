@@ -20,11 +20,21 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import SpeedtestCoordinator
 from .const import (
     ATTR_DOWNLOAD,
+    ATTR_DOWNLOAD_LATENCY_IQM,
+    ATTR_DOWNLOAD_LATENCY_LOW,
+    ATTR_DOWNLOAD_LATENCY_HIGH,
+    ATTR_DOWNLOAD_LATENCY_JITTER,
     ATTR_ISP,
     ATTR_JITTER,
     ATTR_PING,
+    ATTR_PING_LOW,
+    ATTR_PING_HIGH,
     ATTR_SERVER,
     ATTR_UPLOAD,
+    ATTR_UPLOAD_LATENCY_IQM,
+    ATTR_UPLOAD_LATENCY_LOW,
+    ATTR_UPLOAD_LATENCY_HIGH,
+    ATTR_UPLOAD_LATENCY_JITTER,
     DOMAIN,
 )
 
@@ -42,6 +52,30 @@ async def async_setup_entry(
     sensors = [
         OoklaSpeedtestSensor(
             coordinator, entry, ATTR_PING, "Ping", UnitOfTime.MILLISECONDS, "mdi:speedometer"
+        ),
+        OoklaSpeedtestSensor(
+            coordinator, entry, ATTR_PING_LOW, "Ping Low", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+        ),
+        OoklaSpeedtestSensor(
+            coordinator, entry, ATTR_PING_HIGH, "Ping High", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+        ),
+        OoklaSpeedtestSensor(
+            coordinator, entry, ATTR_DOWNLOAD_LATENCY_IQM, "Ping During Download", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+        ),
+        OoklaSpeedtestSensor(
+            coordinator, entry, ATTR_DOWNLOAD_LATENCY_LOW, "Ping Low During Download", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+        ),
+        OoklaSpeedtestSensor(
+            coordinator, entry, ATTR_DOWNLOAD_LATENCY_HIGH, "Ping High During Download", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+        ),
+        OoklaSpeedtestSensor(
+            coordinator, entry, ATTR_UPLOAD_LATENCY_IQM, "Ping During Upload", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+        ),
+        OoklaSpeedtestSensor(
+            coordinator, entry, ATTR_UPLOAD_LATENCY_LOW, "Ping Low During Upload", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
+        ),
+        OoklaSpeedtestSensor(
+            coordinator, entry, ATTR_UPLOAD_LATENCY_HIGH, "Ping High During Upload", UnitOfTime.MILLISECONDS, "mdi:speedometer", enabled_default = False
         ),
         OoklaSpeedtestSensor(
             coordinator,
@@ -66,6 +100,24 @@ async def async_setup_entry(
             "Jitter",
             UnitOfTime.MILLISECONDS,
             "mdi:pulse",
+        ),
+        OoklaSpeedtestSensor(
+            coordinator,
+            entry,
+            ATTR_DOWNLOAD_LATENCY_JITTER,
+            "Jitter During Download",
+            UnitOfTime.MILLISECONDS,
+            "mdi:pulse",
+            enabled_default = False,
+        ),
+        OoklaSpeedtestSensor(
+            coordinator,
+            entry,
+            ATTR_UPLOAD_LATENCY_JITTER,
+            "Jitter During Upload",
+            UnitOfTime.MILLISECONDS,
+            "mdi:pulse",
+            enabled_default = False,
         ),
         OoklaSpeedtestSensor(
             coordinator, entry, ATTR_SERVER, "Server", None, "mdi:server"

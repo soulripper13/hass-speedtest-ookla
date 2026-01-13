@@ -90,6 +90,7 @@ class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], SensorEntity
         name: str,
         unit: str | None,
         icon: str,
+        enabled_default: bool = True,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
@@ -99,6 +100,7 @@ class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], SensorEntity
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_native_unit_of_measurement = unit
         self._attr_icon = icon
+        self._attr_entity_registry_enabled_default = enabled_default
 
         # Set state class for numeric sensors to enable statistics
         if key in (ATTR_PING, ATTR_DOWNLOAD, ATTR_UPLOAD, ATTR_JITTER):

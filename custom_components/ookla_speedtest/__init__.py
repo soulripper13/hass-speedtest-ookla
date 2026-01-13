@@ -88,6 +88,8 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
             result = json.loads(process.stdout)
 
+            _LOGGER.debug("Result from speedtest invocation: %s", result)
+
             return {
                 ATTR_PING: round(result["ping"]["latency"], 2),
                 ATTR_DOWNLOAD: round(result["download"]["bandwidth"] * 8 / 1000000, 2),

@@ -17,11 +17,21 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     ATTR_DOWNLOAD,
+    ATTR_DOWNLOAD_LATENCY_IQM,
+    ATTR_DOWNLOAD_LATENCY_LOW,
+    ATTR_DOWNLOAD_LATENCY_HIGH,
+    ATTR_DOWNLOAD_LATENCY_JITTER,
     ATTR_ISP,
     ATTR_JITTER,
     ATTR_PING,
+    ATTR_PING_LOW,
+    ATTR_PING_HIGH,
     ATTR_SERVER,
     ATTR_UPLOAD,
+    ATTR_UPLOAD_LATENCY_IQM,
+    ATTR_UPLOAD_LATENCY_LOW,
+    ATTR_UPLOAD_LATENCY_HIGH,
+    ATTR_UPLOAD_LATENCY_JITTER,
     CONF_MANUAL,
     CONF_SCAN_INTERVAL,
     CONF_SERVER_ID,
@@ -91,15 +101,33 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.debug("Result from speedtest invocation: %s", result)
 
             return {
+                # ping { jitter, latency, low, high}
                 ATTR_PING: round(result["ping"]["latency"], 2),
-                ATTR_DOWNLOAD: round(result["download"]["bandwidth"] * 8 / 1000000, 2),
-                ATTR_UPLOAD: round(result["upload"]["bandwidth"] * 8 / 1000000, 2),
                 ATTR_JITTER: round(result["ping"]["jitter"], 2),
+                ATTR_PING_LOW: round(result["ping"]["low"], 2),
+                ATTR_PING_HIGH: round(result["ping"]["high"], 2),
+                # download { bandwidth, bytes, elapsed, latency { iqm, low, high, jitter }}
+                ATTR_DOWNLOAD: round(result["download"]["bandwidth"] * 8 / 1000000, 2),
+                ATTR_DOWNLOAD_LATENCY_IQM: round(result["download"]["latency"]["iqm"], 2),
+                ATTR_DOWNLOAD_LATENCY_LOW: round(result["download"]["latency"]["low"], 2),
+                ATTR_DOWNLOAD_LATENCY_HIGH: round(result["download"]["latency"]["high"], 2),
+                ATTR_DOWNLOAD_LATENCY_JITTER: round(result["download"]["latency"]["jitter"], 2),
+                # upload { bandwidth, bytes, elapsed, latency { iqm, low, high, jitter }}
+                ATTR_UPLOAD: round(result["upload"]["bandwidth"] * 8 / 1000000, 2),
+                ATTR_UPLOAD_LATENCY_IQM: round(result["upload"]["latency"]["iqm"], 2),
+                ATTR_UPLOAD_LATENCY_LOW: round(result["upload"]["latency"]["low"], 2),
+                ATTR_UPLOAD_LATENCY_HIGH: round(result["upload"]["latency"]["high"], 2),
+                ATTR_UPLOAD_LATENCY_JITTER: round(result["upload"]["latency"]["jitter"], 2),
+                # isp
+                ATTR_ISP: result["isp"],
+                # interface { internalIp, name, macAddr, isVpn, externalIp }
+                # server { id, host, port, name, location, country, ip }
                 ATTR_SERVER: (
+                    # produces: Boost Mobile (Chicago, IL, United States)
                     f"{result['server']['name']} "
                     f"({result['server']['location']}, {result['server']['country']})"
                 ),
-                ATTR_ISP: result["isp"],
+                # result { id, url, persisted }
             }
         except subprocess.CalledProcessError as e:
             _LOGGER.error("Speedtest failed: %s. Command: %s", e.stderr, " ".join(cmd))

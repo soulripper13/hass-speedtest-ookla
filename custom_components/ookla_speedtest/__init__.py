@@ -26,6 +26,7 @@ from .const import (
     ATTR_PING,
     ATTR_PING_LOW,
     ATTR_PING_HIGH,
+    ATTR_RESULT_URL,
     ATTR_SERVER,
     ATTR_UPLOAD,
     ATTR_UPLOAD_LATENCY_IQM,
@@ -128,6 +129,7 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     f"({result['server']['location']}, {result['server']['country']})"
                 ),
                 # result { id, url, persisted }
+                ATTR_RESULT_URL: result.get("result", {}).get("url", ""),
             }
         except subprocess.CalledProcessError as e:
             _LOGGER.error("Speedtest failed: %s. Command: %s", e.stderr, " ".join(cmd))

@@ -29,6 +29,7 @@ from .const import (
     ATTR_PING,
     ATTR_PING_LOW,
     ATTR_PING_HIGH,
+    ATTR_RESULT_URL,
     ATTR_SERVER,
     ATTR_UPLOAD,
     ATTR_UPLOAD_LATENCY_IQM,
@@ -123,6 +124,9 @@ async def async_setup_entry(
             coordinator, entry, ATTR_SERVER, "Server", None, "mdi:server"
         ),
         OoklaSpeedtestSensor(coordinator, entry, ATTR_ISP, "ISP", None, "mdi:web"),
+        OoklaSpeedtestSensor(
+            coordinator, entry, ATTR_RESULT_URL, "Result URL", None, "mdi:link"
+        ),
     ]
 
     # Don't update before adding to avoid blocking HA startup

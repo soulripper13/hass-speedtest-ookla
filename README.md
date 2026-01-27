@@ -181,20 +181,115 @@ type: custom:layout-card
 layout_type: custom:vertical-layout
 layout:
   width: 320
+  card_margin: 0px
 cards:
   - type: custom:apexcharts-card
     chart_type: radialBar
+    experimental:
+      color_threshold: true
     header:
       show: true
       title: Speedtest
       show_states: true
+      colorize_states: true
     series:
-      - entity: sensor.speedtest_ping
+      - entity: sensor.ookla_speedtest_ping
         name: Ping
-      - entity: sensor.speedtest_download
+        min: 1
+        max: 200
+        color_threshold:
+          - value: 1
+            color: green
+          - value: 100
+            color: orange
+          - value: 200
+            color: red
+        show:
+          header_color_threshold: true
+      - entity: sensor.ookla_speedtest_download
         name: Download
-      - entity: sensor.speedtest_upload
+        min: 0
+        max: 1000
+        color_threshold:
+          - value: 0
+            color: red
+          - value: 500
+            color: orange
+          - value: 1000
+            color: green
+        show:
+          header_color_threshold: true
+      - entity: sensor.ookla_speedtest_upload
         name: Upload
+        min: 0
+        max: 110
+        color_threshold:
+          - value: 0
+            color: red
+          - value: 55
+            color: orange
+          - value: 110
+            color: green
+        show:
+          header_color_threshold: true
+      - entity: sensor.ookla_speedtest_jitter
+        name: Jitter
+        color: aqua
+        show:
+          header_color_threshold: true
+          in_chart: false
+    apex_config:
+      plotOptions:
+        radialBar:
+          offsetY: 0
+          startAngle: -90
+          endAngle: 90
+          dataLabels:
+            name:
+              show: false
+            value:
+              show: false
+      legend:
+        show: false
+      fill:
+        type: gradient
+    card_mod:
+      style: |
+        :host {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+  - type: entities
+    entities:
+      - entity: sensor.ookla_speedtest_isp
+        name: ISP
+        icon: false
+      - entity: sensor.ookla_speedtest_server
+        name: Server
+        icon: false
+    card_mod:
+      style: |
+        :host {
+          margin: 0 !important;
+          padding: 0 !important;
+          --ha-card-border-width: 0;
+        }
+  - show_name: true
+    show_icon: false
+    type: button
+    tap_action:
+      action: perform-action
+      perform_action: ookla_speedtest.run_speedtest
+      target: {}
+    name: Speedtest
+    card_mod:
+      style: |
+        :host {
+          margin: 0 !important;
+          padding: 0 !important;
+          --ha-card-border-width: 0;
+        }
+
 ```
 
 Adjust ranges and thresholds to match your internet plan.

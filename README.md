@@ -91,7 +91,7 @@ This integration is designed to be installed via **HACS**.
 
 ## Configuration
 
-![Configuration Options](https://github.com/user-attachments/assets/REPLACE_WITH_YOUR_IMAGE_ID)
+![Configuration Options](images/options-flow.png)
 
 All configuration is handled through the Home Assistant UI.
 

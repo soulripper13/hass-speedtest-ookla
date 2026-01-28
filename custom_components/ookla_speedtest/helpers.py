@@ -3,6 +3,7 @@
 import json
 import logging
 import subprocess
+from datetime import datetime
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -10,6 +11,26 @@ from homeassistant.core import HomeAssistant
 from .const import SPEEDTEST_BIN_PATH
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def validate_time_format(time_str: str | None) -> bool:
+    """Validate time string format (HH:MM or HH:MM:SS).
+
+    Args:
+        time_str: The time string to validate
+
+    Returns:
+        True if valid or empty, False otherwise
+    """
+    if not time_str:
+        return True
+    for fmt in ("%H:%M", "%H:%M:%S"):
+        try:
+            datetime.strptime(time_str, fmt)
+            return True
+        except ValueError:
+            continue
+    return False
 
 
 def validate_server_id(server_id: str | None) -> bool:

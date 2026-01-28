@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import subprocess
+from datetime import timedelta
 from typing import Any
 
 import voluptuous as vol
@@ -10,16 +11,18 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 
 from .const import (
     CONF_MANUAL,
     CONF_SCAN_INTERVAL,
     CONF_SERVER_ID,
+    CONF_START_TIME,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     INTEGRATION_SHELL_DIR,
 )
-from .helpers import get_speedtest_servers, validate_server_id
+from .helpers import get_speedtest_servers, validate_server_id, validate_time_format
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,6 +32,27 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Ookla Speedtest."""
 
     VERSION = 1
+
+    @staticmethod
+    def _duration_to_minutes(duration: dict[str, int]) -> float:
+        """Convert duration dict to minutes."""
+        return (
+            duration.get("days", 0) * 1440
+            + duration.get("hours", 0) * 60
+            + duration.get("minutes", 0)
+            + duration.get("seconds", 0) / 60
+        )
+
+    @staticmethod
+    def _minutes_to_duration(minutes: float) -> dict[str, int]:
+        """Convert minutes to duration dict."""
+        seconds = int(minutes * 60)
+        return {
+            "days": seconds // 86400,
+            "hours": (seconds % 86400) // 3600,
+            "minutes": (seconds % 3600) // 60,
+            "seconds": seconds % 60,
+        }
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -50,11 +74,35 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Optional("manual_server_id", default=""): str,
                 vol.Optional(CONF_MANUAL, default=True): bool,
-                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
+                vol.Required(
+                    CONF_SCAN_INTERVAL,
+                    default=self._minutes_to_duration(DEFAULT_SCAN_INTERVAL),
+                ): selector.DurationSelector(
+                    selector.DurationSelectorConfig(enable_day=True)
+                ),
+                vol.Optional(CONF_START_TIME): selector.TimeSelector(),
             }
         )
 
         if user_input is None:
+            return self.async_show_form(
+                step_id="user",
+                data_schema=schema,
+                errors=errors,
+            )
+
+        # Process input
+        scan_interval_input = user_input[CONF_SCAN_INTERVAL]
+        if isinstance(scan_interval_input, dict):
+            scan_interval = self._duration_to_minutes(scan_interval_input)
+        else:
+            scan_interval = scan_interval_input  # Should not happen with selector
+
+        start_time = user_input.get(CONF_START_TIME)
+
+        # Validate time format (selector should enforce, but safe to keep)
+        if start_time and not validate_time_format(start_time):
+            errors[CONF_START_TIME] = "Invalid time format"
             return self.async_show_form(
                 step_id="user",
                 data_schema=schema,
@@ -86,7 +134,8 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_data = {
             CONF_SERVER_ID: server_id,
             CONF_MANUAL: user_input[CONF_MANUAL],
-            CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
+            CONF_SCAN_INTERVAL: scan_interval,
+            CONF_START_TIME: start_time,
         }
         return self.async_create_entry(
             title="Ookla Speedtest",
@@ -104,7 +153,7 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         server_options.update(
             {
                 server["id"]: (
-                    f"{server['name']} ({server['location']} - {server['distance']} km)"
+                    f"{server['name']} ({server['location']})"
                 )
                 for server in servers
             }
@@ -152,7 +201,7 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
         servers = await get_speedtest_servers(self.hass)
         server_options = OoklaSpeedtestConfigFlow._build_server_options(servers)
 
-        # Get defaults from options first, then fall back to data
+        # Get defaults
         current_server_id = self.config_entry.options.get(
             CONF_SERVER_ID, self.config_entry.data.get(CONF_SERVER_ID, "closest")
         )
@@ -162,6 +211,10 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
         current_scan_interval = self.config_entry.options.get(
             CONF_SCAN_INTERVAL,
             self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        )
+        current_start_time = self.config_entry.options.get(
+            CONF_START_TIME,
+            self.config_entry.data.get(CONF_START_TIME, None),
         )
 
         schema = vol.Schema(
@@ -175,14 +228,42 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                     CONF_MANUAL,
                     default=current_manual,
                 ): bool,
-                vol.Optional(
+                vol.Required(
                     CONF_SCAN_INTERVAL,
-                    default=current_scan_interval,
-                ): int,
+                    default=OoklaSpeedtestConfigFlow._minutes_to_duration(
+                        current_scan_interval
+                    ),
+                ): selector.DurationSelector(
+                    selector.DurationSelectorConfig(enable_day=True)
+                ),
+                vol.Optional(
+                    CONF_START_TIME,
+                    description={"suggested_value": current_start_time},
+                ): selector.TimeSelector(),
             }
         )
 
         if user_input is None:
+            return self.async_show_form(
+                step_id="init",
+                data_schema=schema,
+                errors=errors,
+            )
+
+        # Process input
+        scan_interval_input = user_input[CONF_SCAN_INTERVAL]
+        if isinstance(scan_interval_input, dict):
+            scan_interval = OoklaSpeedtestConfigFlow._duration_to_minutes(
+                scan_interval_input
+            )
+        else:
+            scan_interval = scan_interval_input
+
+        start_time = user_input.get(CONF_START_TIME)
+
+        # Validate time format
+        if start_time and not validate_time_format(start_time):
+            errors[CONF_START_TIME] = "Invalid time format"
             return self.async_show_form(
                 step_id="init",
                 data_schema=schema,
@@ -211,12 +292,13 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                 errors=errors,
             )
 
-        # Return options data (not updating data directly)
+        # Return options data
         return self.async_create_entry(
             title="",
             data={
                 CONF_SERVER_ID: server_id,
                 CONF_MANUAL: user_input[CONF_MANUAL],
-                CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
+                CONF_SCAN_INTERVAL: scan_interval,
+                CONF_START_TIME: start_time,
             },
         )

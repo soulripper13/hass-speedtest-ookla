@@ -19,6 +19,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import SpeedtestCoordinator
 from .const import (
+    ATTR_DATE_LAST_TEST,
     ATTR_DOWNLOAD,
     ATTR_DOWNLOAD_LATENCY_IQM,
     ATTR_DOWNLOAD_LATENCY_LOW,
@@ -127,6 +128,14 @@ async def async_setup_entry(
         OoklaSpeedtestSensor(
             coordinator, entry, ATTR_RESULT_URL, "Result URL", None, "mdi:link"
         ),
+        OoklaSpeedtestSensor(
+            coordinator,
+            entry,
+            ATTR_DATE_LAST_TEST,
+            "Last Test",
+            None,
+            "mdi:clock",
+        ),
     ]
 
     # Don't update before adding to avoid blocking HA startup
@@ -161,6 +170,9 @@ class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], SensorEntity
         # Set state class for numeric sensors to enable statistics
         if key in (ATTR_PING, ATTR_DOWNLOAD, ATTR_UPLOAD, ATTR_JITTER):
             self._attr_state_class = SensorStateClass.MEASUREMENT
+
+        if key == ATTR_DATE_LAST_TEST:
+            self._attr_device_class = SensorDeviceClass.TIMESTAMP
 
     @property
     def device_info(self) -> DeviceInfo:

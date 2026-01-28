@@ -24,6 +24,7 @@ It provides sensors for latency, download speed, upload speed, jitter, ISP infor
 - **Download** (Mbit/s)
 - **Upload** (Mbit/s)
 - **Jitter** (ms) – Network stability
+- **Last Test** – Timestamp of the last successful test
 - **Server** – Name and location of the test server
 - **ISP** – Detected Internet Service Provider
 
@@ -31,6 +32,7 @@ It provides sensors for latency, download speed, upload speed, jitter, ISP infor
 - Automatically select the closest server
 - Choose from the 10 nearest servers
 - Manually specify a server ID
+- **Precise Scheduling**: Run tests at a specific time (e.g., "every hour on the hour")
 - Automatic testing at a configurable interval
 - Manual-only mode for on-demand testing
 
@@ -89,6 +91,8 @@ This integration is designed to be installed via **HACS**.
 
 ## Configuration
 
+![Configuration Options](https://github.com/user-attachments/assets/REPLACE_WITH_YOUR_IMAGE_ID)
+
 All configuration is handled through the Home Assistant UI.
 
 ### Options
@@ -110,9 +114,14 @@ All configuration is handled through the Home Assistant UI.
 - Default: **Enabled**
 
 #### **Scan Interval**
-- Automatic test interval (minutes)
-- Default: **1440** (24 hours)
-- Lower values consume more bandwidth
+- How often to run automatic tests
+- Configurable via Duration Selector (e.g., 1 hour, 30 minutes)
+- Default: **24 hours**
+- *Note: Lower values consume more bandwidth.*
+
+#### **Start Time**
+- Optional: Set a specific time for the schedule to start (e.g., `14:00:00`)
+- Useful for aligning tests (e.g., set Start Time to `00:00:00` and Interval to `1 hour` to run exactly on the hour)
 
 ---
 
@@ -128,12 +137,13 @@ All configuration is handled through the Home Assistant UI.
 ## Usage
 
 ### Sensors Created
-- `sensor.speedtest_ping`
-- `sensor.speedtest_download`
-- `sensor.speedtest_upload`
-- `sensor.speedtest_jitter`
-- `sensor.speedtest_isp`
-- `sensor.speedtest_server`
+- `sensor.ookla_speedtest_ping`
+- `sensor.ookla_speedtest_download`
+- `sensor.ookla_speedtest_upload`
+- `sensor.ookla_speedtest_jitter`
+- `sensor.ookla_speedtest_last_test`
+- `sensor.ookla_speedtest_isp`
+- `sensor.ookla_speedtest_server`
 
 ---
 

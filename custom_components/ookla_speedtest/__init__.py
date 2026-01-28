@@ -5,17 +5,19 @@ import logging
 import os
 import stat
 import subprocess
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers.event import async_call_later, async_track_point_in_time
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
+    ATTR_DATE_LAST_TEST,
     ATTR_DOWNLOAD,
     ATTR_DOWNLOAD_LATENCY_IQM,
     ATTR_DOWNLOAD_LATENCY_LOW,
@@ -36,6 +38,7 @@ from .const import (
     CONF_MANUAL,
     CONF_SCAN_INTERVAL,
     CONF_SERVER_ID,
+    CONF_START_TIME,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     INTEGRATION_SHELL_DIR,
@@ -76,19 +79,76 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         server_id: str,
         scan_interval: int,
         manual: bool,
+        start_time: str | None = None,
     ) -> None:
         """Initialize the coordinator."""
         self.server_id = server_id
         self.entry = entry
+        self.start_time = start_time
+        self.scan_interval = scan_interval
+        self._unsub_schedule = None
+
+        # If start_time is set, we handle scheduling manually to prevent drift and align to clock
+        update_interval = None
+        if not manual and not start_time:
+            update_interval = timedelta(minutes=scan_interval)
+
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=None if manual else timedelta(minutes=scan_interval),
+            update_interval=update_interval,
         )
+
+    def _schedule_next(self) -> None:
+        """Schedule the next update based on start_time."""
+        if not self.start_time:
+            return
+
+        now = dt_util.now()
+        try:
+            parts = list(map(int, self.start_time.split(":")))
+            if len(parts) == 2:
+                hour, minute = parts
+                second = 0
+            elif len(parts) == 3:
+                hour, minute, second = parts
+            else:
+                raise ValueError
+        except ValueError:
+            _LOGGER.error("Invalid start_time format: %s", self.start_time)
+            return
+        
+        # Get local now
+        local_now = dt_util.now(time_zone=dt_util.DEFAULT_TIME_ZONE)
+        next_run = local_now.replace(hour=hour, minute=minute, second=second, microsecond=0)
+        
+        # Adjust if in past
+        if next_run <= local_now:
+            # Calculate minutes diff
+            diff = (local_now - next_run).total_seconds() / 60
+            # intervals passed
+            intervals = int(diff // self.scan_interval) + 1
+            next_run += timedelta(minutes=intervals * self.scan_interval)
+            
+        _LOGGER.debug("Scheduling next speedtest for %s", next_run)
+
+        if self._unsub_schedule:
+            self._unsub_schedule()
+
+        self._unsub_schedule = async_track_point_in_time(
+            self.hass, self._async_scheduled_refresh, next_run
+        )
+
+    async def _async_scheduled_refresh(self, _):
+        """Refresh data."""
+        await self.async_request_refresh()
 
     async def _async_update_data(self) -> dict[str, Any] | None:
         """Fetch new data from speedtest-cli."""
+        if self.start_time:
+            self._schedule_next()
+
         cmd = [LAUNCH_SCRIPT_PATH]
         if self.server_id != "closest" and validate_server_id(self.server_id):
             cmd.extend(["-s", self.server_id])
@@ -130,6 +190,7 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 ),
                 # result { id, url, persisted }
                 ATTR_RESULT_URL: result.get("result", {}).get("url", ""),
+                ATTR_DATE_LAST_TEST: dt_util.now(),
             }
         except subprocess.CalledProcessError as e:
             _LOGGER.error("Speedtest failed: %s. Command: %s", e.stderr, " ".join(cmd))
@@ -163,6 +224,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     scan_interval = entry.options.get(
         CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     )
+    start_time = entry.options.get(
+        CONF_START_TIME, entry.data.get(CONF_START_TIME)
+    )
 
     # Validate server_id during setup
     if not validate_server_id(server_id):
@@ -171,7 +235,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         server_id = "closest"
 
-    coordinator = SpeedtestCoordinator(hass, entry, server_id, scan_interval, manual)
+    coordinator = SpeedtestCoordinator(
+        hass, entry, server_id, scan_interval, manual, start_time
+    )
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
     # Register service to manually run a speed test

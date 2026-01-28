@@ -8,13 +8,15 @@
           "server_id": "Speedtest Server",
           "manual_server_id": "Manual Server ID",
           "manual": "Manual Mode",
-          "scan_interval": "Scan Interval (minutes)"
+          "scan_interval": "Scan Interval",
+          "start_time": "Start Time"
         },
         "data_description": {
           "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
           "manual_server_id": "Enter a specific server ID number (only used if 'Manual Server ID' is selected above). Find server IDs at speedtest.net/servers.",
           "manual": "When enabled, speed tests will only run when manually triggered via the 'run_speedtest' service. When disabled, tests run automatically based on the scan interval.",
-          "scan_interval": "How often to automatically run speed tests (in minutes). Default is 1440 minutes (24 hours). Only applies when Manual Mode is disabled. Lower values will use more bandwidth."
+          "scan_interval": "How often to automatically run speed tests (in minutes). Default is 1440 minutes (24 hours). Only applies when Manual Mode is disabled. Lower values will use more bandwidth.",
+          "start_time": "Optional: Time to align the schedule (e.g., '14:00'). If set, the first test runs at this time, then every 'Scan Interval'. Useful for 'every hour on the hour' (Set 00:00 and interval 60)."
         }
       }
     },
@@ -35,13 +37,15 @@
           "server_id": "Speedtest Server",
           "manual_server_id": "Manual Server ID",
           "manual": "Manual Mode",
-          "scan_interval": "Scan Interval (minutes)"
+          "scan_interval": "Scan Interval",
+          "start_time": "Start Time"
         },
         "data_description": {
           "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
           "manual_server_id": "Enter a specific server ID number (only used if 'Manual Server ID' is selected above). Find server IDs at speedtest.net/servers.",
           "manual": "When enabled, speed tests will only run when manually triggered via the 'run_speedtest' service. When disabled, tests run automatically based on the scan interval.",
-          "scan_interval": "How often to automatically run speed tests (in minutes). Default is 1440 minutes (24 hours). Only applies when Manual Mode is disabled. Lower values will use more bandwidth."
+          "scan_interval": "How often to automatically run speed tests (in minutes). Default is 1440 minutes (24 hours). Only applies when Manual Mode is disabled. Lower values will use more bandwidth.",
+          "start_time": "Optional: Time to align the schedule (e.g., '14:00'). If set, the first test runs at this time, then every 'Scan Interval'. Useful for 'every hour on the hour' (Set 00:00 and interval 60)."
         }
       }
     },

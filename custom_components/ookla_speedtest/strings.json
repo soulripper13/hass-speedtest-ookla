@@ -9,14 +9,18 @@
           "manual_server_id": "Manual Server ID",
           "manual": "Manual Mode",
           "scan_interval": "Scan Interval",
-          "start_time": "Start Time"
+          "start_time": "Start Time",
+          "isp_dl_speed": "ISP Download Speed (Mbit/s)",
+          "isp_ul_speed": "ISP Upload Speed (Mbit/s)"
         },
         "data_description": {
           "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
           "manual_server_id": "Enter a specific server ID number (only used if 'Manual Server ID' is selected above). Find server IDs at speedtest.net/servers.",
           "manual": "When enabled, speed tests will only run when manually triggered via the 'run_speedtest' service. When disabled, tests run automatically based on the scan interval.",
-          "scan_interval": "How often to automatically run speed tests (in minutes). Default is 1440 minutes (24 hours). Only applies when Manual Mode is disabled. Lower values will use more bandwidth.",
-          "start_time": "Optional: Time to align the schedule (e.g., '14:00'). If set, the first test runs at this time, then every 'Scan Interval'. Useful for 'every hour on the hour' (Set 00:00 and interval 60)."
+          "scan_interval": "How often to automatically run speed tests. Default is 24 hours. Only applies when Manual Mode is disabled. Lower values will use more bandwidth.",
+          "start_time": "Optional: Time to align the schedule (e.g., '14:00'). If set, the first test runs at this time, then every 'Scan Interval'. Useful for 'every hour on the hour' (Set 00:00 and interval 1 hour).",
+          "isp_dl_speed": "Optional: Your rated download speed from your ISP. Used to calculate 'Plan Compliance %'.",
+          "isp_ul_speed": "Optional: Your rated upload speed from your ISP. Used to calculate 'Plan Compliance %'."
         }
       }
     },
@@ -38,14 +42,18 @@
           "manual_server_id": "Manual Server ID",
           "manual": "Manual Mode",
           "scan_interval": "Scan Interval",
-          "start_time": "Start Time"
+          "start_time": "Start Time",
+          "isp_dl_speed": "ISP Download Speed (Mbit/s)",
+          "isp_ul_speed": "ISP Upload Speed (Mbit/s)"
         },
         "data_description": {
           "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
           "manual_server_id": "Enter a specific server ID number (only used if 'Manual Server ID' is selected above). Find server IDs at speedtest.net/servers.",
           "manual": "When enabled, speed tests will only run when manually triggered via the 'run_speedtest' service. When disabled, tests run automatically based on the scan interval.",
-          "scan_interval": "How often to automatically run speed tests (in minutes). Default is 1440 minutes (24 hours). Only applies when Manual Mode is disabled. Lower values will use more bandwidth.",
-          "start_time": "Optional: Time to align the schedule (e.g., '14:00'). If set, the first test runs at this time, then every 'Scan Interval'. Useful for 'every hour on the hour' (Set 00:00 and interval 60)."
+          "scan_interval": "How often to automatically run speed tests. Default is 24 hours. Only applies when Manual Mode is disabled. Lower values will use more bandwidth.",
+          "start_time": "Optional: Time to align the schedule (e.g., '14:00'). If set, the first test runs at this time, then every 'Scan Interval'. Useful for 'every hour on the hour' (Set 00:00 and interval 1 hour).",
+          "isp_dl_speed": "Optional: Your rated download speed from your ISP. Used to calculate 'Plan Compliance %'.",
+          "isp_ul_speed": "Optional: Your rated upload speed from your ISP. Used to calculate 'Plan Compliance %'."
         }
       }
     },

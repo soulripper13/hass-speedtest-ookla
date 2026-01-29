@@ -14,6 +14,8 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_ISP_DL_SPEED,
+    CONF_ISP_UL_SPEED,
     CONF_MANUAL,
     CONF_SCAN_INTERVAL,
     CONF_SERVER_ID,
@@ -81,6 +83,8 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     selector.DurationSelectorConfig(enable_day=True)
                 ),
                 vol.Optional(CONF_START_TIME): selector.TimeSelector(),
+                vol.Optional(CONF_ISP_DL_SPEED): vol.Coerce(float),
+                vol.Optional(CONF_ISP_UL_SPEED): vol.Coerce(float),
             }
         )
 
@@ -136,6 +140,8 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_MANUAL: user_input[CONF_MANUAL],
             CONF_SCAN_INTERVAL: scan_interval,
             CONF_START_TIME: start_time,
+            CONF_ISP_DL_SPEED: user_input.get(CONF_ISP_DL_SPEED),
+            CONF_ISP_UL_SPEED: user_input.get(CONF_ISP_UL_SPEED),
         }
         return self.async_create_entry(
             title="Ookla Speedtest",
@@ -216,6 +222,14 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
             CONF_START_TIME,
             self.config_entry.data.get(CONF_START_TIME, None),
         )
+        current_isp_dl = self.config_entry.options.get(
+            CONF_ISP_DL_SPEED,
+            self.config_entry.data.get(CONF_ISP_DL_SPEED),
+        )
+        current_isp_ul = self.config_entry.options.get(
+            CONF_ISP_UL_SPEED,
+            self.config_entry.data.get(CONF_ISP_UL_SPEED),
+        )
 
         schema = vol.Schema(
             {
@@ -240,6 +254,14 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                     CONF_START_TIME,
                     description={"suggested_value": current_start_time},
                 ): selector.TimeSelector(),
+                vol.Optional(
+                    CONF_ISP_DL_SPEED,
+                    description={"suggested_value": current_isp_dl},
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_ISP_UL_SPEED,
+                    description={"suggested_value": current_isp_ul},
+                ): vol.Coerce(float),
             }
         )
 
@@ -300,5 +322,7 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                 CONF_MANUAL: user_input[CONF_MANUAL],
                 CONF_SCAN_INTERVAL: scan_interval,
                 CONF_START_TIME: start_time,
+                CONF_ISP_DL_SPEED: user_input.get(CONF_ISP_DL_SPEED),
+                CONF_ISP_UL_SPEED: user_input.get(CONF_ISP_UL_SPEED),
             },
         )

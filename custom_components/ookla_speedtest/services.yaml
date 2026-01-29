@@ -1,3 +1,12 @@
 run_speedtest:
+  name: Run Speedtest
   description: Manually trigger an Ookla Speedtest run.
+  fields: {}
+
+register_card_resources:
+  name: Register Card Resources
+  description: >
+    Automatically register Ookla Speedtest card resources in all Lovelace dashboards.
+    Run this service once after installation, then refresh your browser.
+    Cards will be available in the "Add Card" picker.
   fields: {}

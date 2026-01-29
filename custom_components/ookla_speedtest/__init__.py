@@ -17,7 +17,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ATTR_BUFFERBLOAT_GRADE,
     ATTR_DATE_LAST_TEST,
+    ATTR_DL_PCT,
     ATTR_DOWNLOAD,
     ATTR_DOWNLOAD_LATENCY_IQM,
     ATTR_DOWNLOAD_LATENCY_LOW,
@@ -30,11 +32,14 @@ from .const import (
     ATTR_PING_HIGH,
     ATTR_RESULT_URL,
     ATTR_SERVER,
+    ATTR_UL_PCT,
     ATTR_UPLOAD,
     ATTR_UPLOAD_LATENCY_IQM,
     ATTR_UPLOAD_LATENCY_LOW,
     ATTR_UPLOAD_LATENCY_HIGH,
     ATTR_UPLOAD_LATENCY_JITTER,
+    CONF_ISP_DL_SPEED,
+    CONF_ISP_UL_SPEED,
     CONF_MANUAL,
     CONF_SCAN_INTERVAL,
     CONF_SERVER_ID,
@@ -47,6 +52,7 @@ from .const import (
     STARTUP_DELAY,
 )
 from .helpers import validate_server_id
+from .www_manager import async_setup_cards, async_register_resources_service, async_register_cards
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,6 +75,40 @@ if os.path.isdir(INTEGRATION_SHELL_DIR):
                 )
 
 
+async def async_setup_cards_and_resources(hass: HomeAssistant) -> None:
+    """Set up custom cards and register resources.
+    
+    This function:
+    1. Copies card files to www folder for accessibility
+    2. Registers the service to add resources to dashboards
+    3. Automatically registers resources on startup
+    """
+    try:
+        # Copy cards to www folder
+        await async_setup_cards(hass)
+        
+        # Register service for manual resource registration
+        await async_register_resources_service(hass)
+
+        # Auto-register resources when HA starts
+        async def auto_register_resources(event):
+            await async_register_cards(hass)
+
+        if hass.is_running:
+            await auto_register_resources(None)
+        else:
+            hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, auto_register_resources)
+        
+        _LOGGER.info(
+            "Ookla Speedtest cards are ready! "
+            "Resources will be auto-registered on startup. "
+            "Call service 'ookla_speedtest.register_card_resources' to manually register."
+        )
+        
+    except Exception as e:
+        _LOGGER.error("Failed to set up cards: %s", e)
+
+
 class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator to manage Speedtest updates."""
 
@@ -80,12 +120,16 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         scan_interval: int,
         manual: bool,
         start_time: str | None = None,
+        isp_dl_speed: float | None = None,
+        isp_ul_speed: float | None = None,
     ) -> None:
         """Initialize the coordinator."""
         self.server_id = server_id
         self.entry = entry
         self.start_time = start_time
         self.scan_interval = scan_interval
+        self.isp_dl_speed = isp_dl_speed
+        self.isp_ul_speed = isp_ul_speed
         self._unsub_schedule = None
 
         # If start_time is set, we handle scheduling manually to prevent drift and align to clock
@@ -161,7 +205,7 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             _LOGGER.debug("Result from speedtest invocation: %s", result)
 
-            return {
+            data = {
                 # ping { jitter, latency, low, high}
                 ATTR_PING: round(result["ping"]["latency"], 2),
                 ATTR_JITTER: round(result["ping"]["jitter"], 2),
@@ -192,6 +236,45 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 ATTR_RESULT_URL: result.get("result", {}).get("url", ""),
                 ATTR_DATE_LAST_TEST: dt_util.now(),
             }
+
+            if self.isp_dl_speed and data[ATTR_DOWNLOAD] > 0:
+                data[ATTR_DL_PCT] = round(
+                    (data[ATTR_DOWNLOAD] / self.isp_dl_speed) * 100, 1
+                )
+
+            if self.isp_ul_speed and data[ATTR_UPLOAD] > 0:
+                data[ATTR_UL_PCT] = round(
+                    (data[ATTR_UPLOAD] / self.isp_ul_speed) * 100, 1
+                )
+
+            # Bufferbloat Calculation
+            # Calculate the increase in latency under load
+            ping_idle = data[ATTR_PING]
+            # Handle potential 0/None values if test failed partially
+            ping_dl = data.get(ATTR_DOWNLOAD_LATENCY_IQM, 0)
+            ping_ul = data.get(ATTR_UPLOAD_LATENCY_IQM, 0)
+            
+            if ping_dl and ping_ul:
+                max_loaded = max(ping_dl, ping_ul)
+                # Ensure we don't get negative delta due to variance
+                delta = max(0, max_loaded - ping_idle)
+                
+                if delta <= 30:
+                    grade = "A"
+                elif delta <= 60:
+                    grade = "B"
+                elif delta <= 120:
+                    grade = "C"
+                elif delta <= 300:
+                    grade = "D"
+                else:
+                    grade = "F"
+                
+                data[ATTR_BUFFERBLOAT_GRADE] = grade
+            else:
+                data[ATTR_BUFFERBLOAT_GRADE] = None
+
+            return data
         except subprocess.CalledProcessError as e:
             _LOGGER.error("Speedtest failed: %s. Command: %s", e.stderr, " ".join(cmd))
             return None
@@ -227,6 +310,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     start_time = entry.options.get(
         CONF_START_TIME, entry.data.get(CONF_START_TIME)
     )
+    isp_dl_speed = entry.options.get(
+        CONF_ISP_DL_SPEED, entry.data.get(CONF_ISP_DL_SPEED)
+    )
+    isp_ul_speed = entry.options.get(
+        CONF_ISP_UL_SPEED, entry.data.get(CONF_ISP_UL_SPEED)
+    )
 
     # Validate server_id during setup
     if not validate_server_id(server_id):
@@ -236,7 +325,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         server_id = "closest"
 
     coordinator = SpeedtestCoordinator(
-        hass, entry, server_id, scan_interval, manual, start_time
+        hass, entry, server_id, scan_interval, manual, start_time, isp_dl_speed, isp_ul_speed
     )
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
@@ -268,6 +357,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, schedule_first_refresh)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Set up custom cards and register resources service
+    # Copies cards to www folder and provides service for auto-registration
+    await async_setup_cards_and_resources(hass)
 
     # Register options update listener
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))

@@ -11,7 +11,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfDataRate, UnitOfTime
+from homeassistant.const import PERCENTAGE, UnitOfDataRate, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -19,7 +19,9 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import SpeedtestCoordinator
 from .const import (
+    ATTR_BUFFERBLOAT_GRADE,
     ATTR_DATE_LAST_TEST,
+    ATTR_DL_PCT,
     ATTR_DOWNLOAD,
     ATTR_DOWNLOAD_LATENCY_IQM,
     ATTR_DOWNLOAD_LATENCY_LOW,
@@ -32,6 +34,7 @@ from .const import (
     ATTR_PING_HIGH,
     ATTR_RESULT_URL,
     ATTR_SERVER,
+    ATTR_UL_PCT,
     ATTR_UPLOAD,
     ATTR_UPLOAD_LATENCY_IQM,
     ATTR_UPLOAD_LATENCY_LOW,
@@ -94,6 +97,32 @@ async def async_setup_entry(
             "Upload",
             UnitOfDataRate.MEGABITS_PER_SECOND,
             "mdi:upload",
+        ),
+        OoklaSpeedtestSensor(
+            coordinator,
+            entry,
+            ATTR_DL_PCT,
+            "Download Plan Compliance",
+            PERCENTAGE,
+            "mdi:percent",
+            enabled_default=False,
+        ),
+        OoklaSpeedtestSensor(
+            coordinator,
+            entry,
+            ATTR_UL_PCT,
+            "Upload Plan Compliance",
+            PERCENTAGE,
+            "mdi:percent",
+            enabled_default=False,
+        ),
+        OoklaSpeedtestSensor(
+            coordinator,
+            entry,
+            ATTR_BUFFERBLOAT_GRADE,
+            "Bufferbloat Grade",
+            None,
+            "mdi:check-network",
         ),
         OoklaSpeedtestSensor(
             coordinator,
@@ -168,7 +197,14 @@ class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], SensorEntity
         self._attr_entity_registry_enabled_default = enabled_default
 
         # Set state class for numeric sensors to enable statistics
-        if key in (ATTR_PING, ATTR_DOWNLOAD, ATTR_UPLOAD, ATTR_JITTER):
+        if key in (
+            ATTR_PING,
+            ATTR_DOWNLOAD,
+            ATTR_UPLOAD,
+            ATTR_JITTER,
+            ATTR_DL_PCT,
+            ATTR_UL_PCT,
+        ):
             self._attr_state_class = SensorStateClass.MEASUREMENT
 
         if key == ATTR_DATE_LAST_TEST:

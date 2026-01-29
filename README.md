@@ -24,6 +24,8 @@ It provides sensors for latency, download speed, upload speed, jitter, ISP infor
 - **Download** (Mbit/s)
 - **Upload** (Mbit/s)
 - **Jitter** (ms) – Network stability
+- **Bufferbloat Grade** – Latency stability rating (A-F)
+- **Download/Upload Plan Compliance** (%) – Speed vs. ISP rated plan
 - **Last Test** – Timestamp of the last successful test
 - **Server** – Name and location of the test server
 - **ISP** – Detected Internet Service Provider
@@ -136,14 +138,39 @@ All configuration is handled through the Home Assistant UI.
 
 ## Usage
 
-### Sensors Created
-- `sensor.ookla_speedtest_ping`
-- `sensor.ookla_speedtest_download`
-- `sensor.ookla_speedtest_upload`
-- `sensor.ookla_speedtest_jitter`
-- `sensor.ookla_speedtest_last_test`
+### 📊 Sensors Created
+
+The integration creates a comprehensive set of sensors. Some are enabled by default, while others can be enabled via the Home Assistant UI.
+
+#### **Enabled by Default**
+- `sensor.ookla_speedtest_download` (Mbps)
+- `sensor.ookla_speedtest_upload` (Mbps)
+- `sensor.ookla_speedtest_ping` (ms)
+- `sensor.ookla_speedtest_jitter` (ms)
+- `sensor.ookla_speedtest_bufferbloat_grade` (A-F)
 - `sensor.ookla_speedtest_isp`
 - `sensor.ookla_speedtest_server`
+- `sensor.ookla_speedtest_last_test`
+- `sensor.ookla_speedtest_result_url`
+
+#### **Extended Metrics (Disabled by Default)**
+*Go to Integration Settings → Entities to enable these.*
+
+**Latency Metrics:**
+- `sensor.ookla_speedtest_ping_low` (Idle Min)
+- `sensor.ookla_speedtest_ping_high` (Idle Max)
+- `sensor.ookla_speedtest_ping_during_download` (Avg)
+- `sensor.ookla_speedtest_ping_low_during_download` (Min)
+- `sensor.ookla_speedtest_ping_high_during_download` (Max)
+- `sensor.ookla_speedtest_ping_during_upload` (Avg)
+- `sensor.ookla_speedtest_ping_low_during_upload` (Min)
+- `sensor.ookla_speedtest_ping_high_during_upload` (Max)
+
+**Stability & Compliance:**
+- `sensor.ookla_speedtest_download_percent` (Plan Compliance %)
+- `sensor.ookla_speedtest_upload_percent` (Plan Compliance %)
+- `sensor.ookla_speedtest_jitter_during_download` (ms)
+- `sensor.ookla_speedtest_jitter_during_upload` (ms)
 
 ---
 
@@ -163,28 +190,64 @@ automation:
 
 ---
 
-## Lovelace Card Example
+## 🎨 Lovelace Cards (Auto-Setup!)
 
-This example uses:
+This integration includes **beautiful, custom Lovelace cards** that work out of the box - no external dependencies required!
 
-* `custom:apexcharts-card`
-* `custom:layout-card`
+### ✨ New in v1.1.0: Glassmorphism Design
+The cards have been completely redesigned with a modern **Glassmorphism** aesthetic, featuring:
+- 🌫️ **Frosted Glass Effect**: Semitransparent backgrounds with blur
+- 🌈 **Gradient Gauges & Charts**: Beautiful, smooth color transitions
+- 📱 **Responsive Layouts**: Looks great on mobile and desktop
+- 🖱️ **Visual Editor**: Configure settings directly in the UI!
 
-Install both via HACS.
+### 📦 Built-in Cards
 
-### Optional Script
+| Card | Description | Preview |
+|------|-------------|---------|
+| `ookla-speedtest-card` | **Full Interface** with radial gauges, "GO" button, and Glassmorphism design. Best for main dashboards. | ![Ookla Speedtest Card](images/ookla-speedtest-card.png) |
+| `ookla-speedtest-dashboard` | **Dashboard** view with sparkline area charts and detailed metrics. Perfect for network overviews. | ![Dashboard Card](images/ookla-speedtest-dashboard.png) |
+| `ookla-speedtest-minimal` | Clean design with large typography. Ideal for minimalist setups. | ![Minimal Card](images/ookla-speedtest-minimal.png) |
+| `ookla-speedtest-compact` | Small single-line card. Great for side panels or dense views. | ![Compact Card](images/ookla-speedtest-compact.png) |
+| `ookla-speedtest-card-simple` | Basic simplified version for testing and quick setups. | ![Simple Card](images/ookla-speedtest-card-simple.png) |
+
+### 🚀 Zero-Config Setup
+
+**Cards are automatically registered when Home Assistant starts!**
+
+1. Install the integration
+2. Restart Home Assistant
+3. Go to your Dashboard → Edit Dashboard → Add Card
+4. Search for **"Ookla"**
+5. Select a card and configure it visually!
+
+> **Note:** If cards don't appear immediately, you can force registration by calling the `ookla_speedtest.register_card_resources` service in Developer Tools, or simply refresh your browser cache.
+
+### 🎯 Visual Configuration
+
+The **Ookla Speedtest Card** now supports the visual editor! You can easily adjust:
+- **Max Download Speed** (for gauge scaling)
+- **Max Upload Speed** (for gauge scaling)
+
+No YAML required! Just add the card and use the form.
 
 ```yaml
-script:
-  speedtest:
-    alias: Run Speedtest
-    sequence:
-      - service: ookla_speedtest.run_speedtest
+# Minimal YAML example if you prefer code
+type: custom:ookla-speedtest-card
+# Configurable via UI:
+max_download: 1000 
+max_upload: 500
 ```
+
+📖 **[Full Card Documentation](custom_components/ookla_speedtest/www/README.md)**
 
 ---
 
-### Example Card Configuration
+## Alternative: Custom Card Combinations
+
+If you prefer building cards from existing components, here's an example using `apexcharts-card` and `layout-card`:
+
+**Required:** Install `apexcharts-card`, `layout-card`, and `card-mod` via HACS.
 
 ```yaml
 type: custom:layout-card
@@ -195,114 +258,19 @@ layout:
 cards:
   - type: custom:apexcharts-card
     chart_type: radialBar
-    experimental:
-      color_threshold: true
     header:
       show: true
       title: Speedtest
-      show_states: true
-      colorize_states: true
     series:
-      - entity: sensor.ookla_speedtest_ping
-        name: Ping
-        min: 1
-        max: 200
-        color_threshold:
-          - value: 1
-            color: green
-          - value: 100
-            color: orange
-          - value: 200
-            color: red
-        show:
-          header_color_threshold: true
       - entity: sensor.ookla_speedtest_download
         name: Download
         min: 0
         max: 1000
-        color_threshold:
-          - value: 0
-            color: red
-          - value: 500
-            color: orange
-          - value: 1000
-            color: green
-        show:
-          header_color_threshold: true
       - entity: sensor.ookla_speedtest_upload
         name: Upload
         min: 0
-        max: 110
-        color_threshold:
-          - value: 0
-            color: red
-          - value: 55
-            color: orange
-          - value: 110
-            color: green
-        show:
-          header_color_threshold: true
-      - entity: sensor.ookla_speedtest_jitter
-        name: Jitter
-        color: aqua
-        show:
-          header_color_threshold: true
-          in_chart: false
-    apex_config:
-      plotOptions:
-        radialBar:
-          offsetY: 0
-          startAngle: -90
-          endAngle: 90
-          dataLabels:
-            name:
-              show: false
-            value:
-              show: false
-      legend:
-        show: false
-      fill:
-        type: gradient
-    card_mod:
-      style: |
-        :host {
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-  - type: entities
-    entities:
-      - entity: sensor.ookla_speedtest_isp
-        name: ISP
-        icon: false
-      - entity: sensor.ookla_speedtest_server
-        name: Server
-        icon: false
-    card_mod:
-      style: |
-        :host {
-          margin: 0 !important;
-          padding: 0 !important;
-          --ha-card-border-width: 0;
-        }
-  - show_name: true
-    show_icon: false
-    type: button
-    tap_action:
-      action: perform-action
-      perform_action: ookla_speedtest.run_speedtest
-      target: {}
-    name: Speedtest
-    card_mod:
-      style: |
-        :host {
-          margin: 0 !important;
-          padding: 0 !important;
-          --ha-card-border-width: 0;
-        }
-
+        max: 500
 ```
-
-Adjust ranges and thresholds to match your internet plan.
 
 ---
 

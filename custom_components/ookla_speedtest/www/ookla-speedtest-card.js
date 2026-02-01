@@ -203,6 +203,7 @@ class OoklaSpeedtestCard extends HTMLElement {
           color: #f8fafc;
           position: relative;
           overflow: hidden;
+          direction: ltr;
         }
 
         .card::before {

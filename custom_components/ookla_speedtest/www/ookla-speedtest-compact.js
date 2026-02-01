@@ -86,6 +86,7 @@ class OoklaSpeedtestCompact extends HTMLElement {
           justify-content: space-between;
           border: 1px solid rgba(255, 255, 255, 0.08);
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          direction: ltr;
         }
         .info {
           display: flex;

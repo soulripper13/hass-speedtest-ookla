@@ -99,6 +99,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
           color: #f8fafc;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           border: 1px solid rgba(255, 255, 255, 0.08);
+          direction: ltr;
         }
         .isp-text {
           font-size: 11px;

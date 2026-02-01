@@ -240,6 +240,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
           border: 1px solid rgba(255, 255, 255, 0.08);
           color: #f8fafc;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          direction: ltr;
         }
         .header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
         .isp-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #f8fafc; }

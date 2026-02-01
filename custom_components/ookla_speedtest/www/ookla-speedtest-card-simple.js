@@ -62,6 +62,7 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
           border-radius: 24px;
           font-family: sans-serif;
           border: 1px solid rgba(255, 255, 255, 0.08);
+          direction: ltr;
         }
         .title { font-size: 18px; margin-bottom: 10px; font-weight: 700; }
         .row { display: flex; justify-content: space-between; margin: 10px 0; }

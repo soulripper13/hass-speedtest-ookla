@@ -172,6 +172,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
           justify-content: center;
           /* Ensure card fills available space in sections view */
           flex: 1;
+          direction: ltr;
         }
         .isp-text {
           font-size: 11px;
@@ -409,4 +410,4 @@ window.customCards.push({
   preview: true
 });
 
-console.info("%c OOKLA SPEEDTEST MINIMAL %c v1.4.3 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST MINIMAL %c v1.4.4 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

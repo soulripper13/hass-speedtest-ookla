@@ -445,6 +445,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
             overflow: auto;
             /* Ensure card fills available space in sections view */
             flex: 1;
+            direction: ltr;
           }
           .header { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
           .isp-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #f8fafc; }
@@ -1017,4 +1018,4 @@ window.customCards.push({
   preview: true
 });
 
-console.info("%c OOKLA SPEEDTEST DASHBOARD %c v1.4.3 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST DASHBOARD %c v1.4.4 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

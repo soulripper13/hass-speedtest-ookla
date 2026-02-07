@@ -274,6 +274,7 @@ class OoklaSpeedtestCard extends HTMLElement {
           justify-content: space-between;
           /* Ensure card fills available space in sections view */
           flex: 1;
+          direction: ltr;
         }
 
         .card::before {
@@ -840,4 +841,4 @@ window.customCards.push({
   documentationURL: "https://github.com/soulripper13/hass-speedtest-ookla"
 });
 
-console.info("%c OOKLA SPEEDTEST CARD %c v1.4.3 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST CARD %c v1.4.4 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

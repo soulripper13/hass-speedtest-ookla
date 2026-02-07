@@ -121,6 +121,7 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
           justify-content: center;
           /* Ensure card fills available space in sections view */
           flex: 1;
+          direction: ltr;
         }
         .title { font-size: 18px; margin-bottom: 10px; font-weight: 700; }
         .row { 
@@ -246,4 +247,4 @@ window.customCards.push({
   description: "Simplified test version"
 });
 
-console.info("%c OOKLA SPEEDTEST SIMPLE %c v1.4.3 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST SIMPLE %c v1.4.4 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

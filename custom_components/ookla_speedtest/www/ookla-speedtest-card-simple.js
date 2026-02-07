@@ -2,12 +2,13 @@
  * Ookla Speedtest Card - Simplified Version
  * Basic working version to test setup
  *
- * Version: 1.2.0 - Fixed masonry and sections layout compatibility
+ * Version: 1.4.0 - Improved masonry and sections layout compatibility
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
- * - Sections: Uses 4 columns x 5 rows grid by default
+ * - Sections: Uses 4 columns x 3 rows grid by default
  * - Both layouts fully supported with proper height handling
+ * - Added cache busting support
  */
 
 class OoklaSpeedtestCardSimple extends HTMLElement {
@@ -43,28 +44,32 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
 
   /**
    * Card size for Masonry view (1 = 50px)
+   * This helps masonry layout calculate proper column distribution
    */
   getCardSize() {
-    return 5; // ~250px height
+    return 6; // ~300px height
   }
 
   /**
    * Layout options for Sections view
    * Sections use a 12-column grid system
+   * 
+   * grid_columns: How many columns the card should occupy (1-12)
+   * grid_rows: How many rows the card should occupy (1+), each row is ~56px
+   * grid_min/max: Constraints for user resizing
    */
   static getLayoutOptions() {
     return {
-      grid_columns: 4,        // 1/3 width (33% of 12 columns)
-      grid_min_columns: 4,
-      grid_max_columns: 6,
-      grid_rows: 2,
-      grid_min_rows: 2,
-      grid_max_rows: 3,
+      grid_columns: null,     // Automatic width
+      grid_rows: null,        // Automatic height
     };
   }
 
   getLayoutOptions() {
-    return OoklaSpeedtestCardSimple.getLayoutOptions();
+    return {
+      grid_columns: null,     // Automatic width
+      grid_rows: null,        // Automatic height
+    };
   }
 
   update() {
@@ -89,6 +94,7 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
         :host {
           display: block;
           width: 100%;
+          height: 100%;
           box-sizing: border-box;
           container-type: inline-size;
         }
@@ -113,6 +119,8 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
           display: flex;
           flex-direction: column;
           justify-content: center;
+          /* Ensure card fills available space in sections view */
+          flex: 1;
         }
         .title { font-size: 18px; margin-bottom: 10px; font-weight: 700; }
         .row { 
@@ -166,6 +174,13 @@ class OoklaSpeedtestCardSimpleEditor extends HTMLElement {
     this.render();
   }
 
+  set hass(hass) {
+    this._hass = hass;
+    if (this._elements) {
+      this._elements.forEach(el => el.hass = hass);
+    }
+  }
+
   configChanged(newConfig) {
     const event = new CustomEvent("config-changed", {
       detail: { config: newConfig },
@@ -176,17 +191,49 @@ class OoklaSpeedtestCardSimpleEditor extends HTMLElement {
   }
 
   render() {
-    if (!this.innerHTML) {
-      this.innerHTML = `
-        <style>
-          .card-config { display: flex; flex-direction: column; gap: 12px; padding: 8px; }
-          .info { font-size: 14px; color: var(--secondary-text-color); }
-        </style>
-        <div class="card-config">
-          <span class="info">This is a simplified test card. It uses default sensors automatically.</span>
-        </div>
-      `;
-    }
+    if (this._elements) return;
+
+    this.innerHTML = '';
+    this._elements = [];
+
+    const container = document.createElement('div');
+    container.style.cssText = "display: flex; flex-direction: column; gap: 12px; padding: 10px;";
+
+    const entitiesDiv = document.createElement('div');
+    entitiesDiv.style.cssText = "border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; padding: 10px; background: var(--card-background-color, rgba(0,0,0,0.2));";
+    entitiesDiv.innerHTML = `<div style="font-weight: 500; margin-bottom: 10px; color: var(--primary-text-color); font-size: 14px;">Entities</div>`;
+
+    const createPicker = (key, label) => {
+      const div = document.createElement('div');
+      div.style.marginBottom = "12px";
+      
+      const lbl = document.createElement('label');
+      lbl.innerText = label;
+      lbl.style.cssText = "font-size: 12px; color: var(--secondary-text-color); margin-bottom: 4px; display: block;";
+      div.appendChild(lbl);
+
+      const picker = document.createElement('ha-entity-picker');
+      picker.hass = this._hass;
+      picker.value = (this._config.entities && this._config.entities[key]) || '';
+      picker.includeDomains = ['sensor'];
+      picker.allowCustomEntity = true;
+      picker.addEventListener('value-changed', (e) => {
+        const entities = { ...(this._config.entities || {}) };
+        entities[key] = e.detail.value;
+        this.configChanged({ ...this._config, entities });
+      });
+      
+      this._elements.push(picker);
+      div.appendChild(picker);
+      return div;
+    };
+
+    entitiesDiv.appendChild(createPicker('download', 'Download Entity'));
+    entitiesDiv.appendChild(createPicker('upload', 'Upload Entity'));
+    entitiesDiv.appendChild(createPicker('ping', 'Ping Entity'));
+    
+    container.appendChild(entitiesDiv);
+    this.appendChild(container);
   }
 }
 customElements.define("ookla-speedtest-card-simple-editor", OoklaSpeedtestCardSimpleEditor);
@@ -199,4 +246,4 @@ window.customCards.push({
   description: "Simplified test version"
 });
 
-console.log("✅ Ookla Speedtest Simple Card v1.2.0 loaded");
+console.info("%c OOKLA SPEEDTEST SIMPLE %c v1.4.3 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

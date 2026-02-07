@@ -14,12 +14,16 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_ENABLE_COMPLIANCE_SENSORS,
+    CONF_ENABLE_LATENCY_SENSORS,
     CONF_ISP_DL_SPEED,
     CONF_ISP_UL_SPEED,
     CONF_MANUAL,
     CONF_SCAN_INTERVAL,
     CONF_SERVER_ID,
     CONF_START_TIME,
+    DEFAULT_ENABLE_COMPLIANCE,
+    DEFAULT_ENABLE_LATENCY,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     INTEGRATION_SHELL_DIR,
@@ -85,6 +89,12 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_START_TIME): selector.TimeSelector(),
                 vol.Optional(CONF_ISP_DL_SPEED): vol.Coerce(float),
                 vol.Optional(CONF_ISP_UL_SPEED): vol.Coerce(float),
+                vol.Optional(
+                    CONF_ENABLE_LATENCY_SENSORS, default=DEFAULT_ENABLE_LATENCY
+                ): bool,
+                vol.Optional(
+                    CONF_ENABLE_COMPLIANCE_SENSORS, default=DEFAULT_ENABLE_COMPLIANCE
+                ): bool,
             }
         )
 
@@ -142,6 +152,12 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_START_TIME: start_time,
             CONF_ISP_DL_SPEED: user_input.get(CONF_ISP_DL_SPEED),
             CONF_ISP_UL_SPEED: user_input.get(CONF_ISP_UL_SPEED),
+            CONF_ENABLE_LATENCY_SENSORS: user_input.get(
+                CONF_ENABLE_LATENCY_SENSORS, DEFAULT_ENABLE_LATENCY
+            ),
+            CONF_ENABLE_COMPLIANCE_SENSORS: user_input.get(
+                CONF_ENABLE_COMPLIANCE_SENSORS, DEFAULT_ENABLE_COMPLIANCE
+            ),
         }
         return self.async_create_entry(
             title="Ookla Speedtest",
@@ -230,6 +246,18 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
             CONF_ISP_UL_SPEED,
             self.config_entry.data.get(CONF_ISP_UL_SPEED),
         )
+        current_enable_latency = self.config_entry.options.get(
+            CONF_ENABLE_LATENCY_SENSORS,
+            self.config_entry.data.get(
+                CONF_ENABLE_LATENCY_SENSORS, DEFAULT_ENABLE_LATENCY
+            ),
+        )
+        current_enable_compliance = self.config_entry.options.get(
+            CONF_ENABLE_COMPLIANCE_SENSORS,
+            self.config_entry.data.get(
+                CONF_ENABLE_COMPLIANCE_SENSORS, DEFAULT_ENABLE_COMPLIANCE
+            ),
+        )
 
         schema = vol.Schema(
             {
@@ -262,6 +290,14 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                     CONF_ISP_UL_SPEED,
                     description={"suggested_value": current_isp_ul},
                 ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_ENABLE_LATENCY_SENSORS,
+                    default=current_enable_latency,
+                ): bool,
+                vol.Optional(
+                    CONF_ENABLE_COMPLIANCE_SENSORS,
+                    default=current_enable_compliance,
+                ): bool,
             }
         )
 
@@ -324,5 +360,11 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                 CONF_START_TIME: start_time,
                 CONF_ISP_DL_SPEED: user_input.get(CONF_ISP_DL_SPEED),
                 CONF_ISP_UL_SPEED: user_input.get(CONF_ISP_UL_SPEED),
+                CONF_ENABLE_LATENCY_SENSORS: user_input.get(
+                    CONF_ENABLE_LATENCY_SENSORS, DEFAULT_ENABLE_LATENCY
+                ),
+                CONF_ENABLE_COMPLIANCE_SENSORS: user_input.get(
+                    CONF_ENABLE_COMPLIANCE_SENSORS, DEFAULT_ENABLE_COMPLIANCE
+                ),
             },
         )

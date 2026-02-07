@@ -56,7 +56,7 @@ from .www_manager import async_setup_cards, async_register_resources_service, as
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SENSOR]
+PLATFORMS = [Platform.SENSOR, "diagnostics"]
 
 
 # Set execute permissions on shell scripts

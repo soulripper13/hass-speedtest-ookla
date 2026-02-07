@@ -2,12 +2,13 @@
  * Ookla Speedtest Card - Dashboard Version
  * Full-featured dashboard card with configurable gauges and charts
  *
- * Version: 2.0.0 - Added configurable gauges and max speed settings
+ * Version: 1.4.0 - Improved masonry and sections layout compatibility
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
- * - Sections: Uses 6 columns x 12 rows grid by default
+ * - Sections: Uses 6 columns x 6 rows grid by default
  * - Both layouts fully supported with proper height handling
+ * - Added cache busting support
  */
 
 class OoklaSpeedtestDashboard extends HTMLElement {
@@ -50,6 +51,13 @@ class OoklaSpeedtestDashboard extends HTMLElement {
         ul_compliance: "sensor.ookla_speedtest_upload_plan_compliance",
         dl_jitter: "sensor.ookla_speedtest_download_jitter",
         ul_jitter: "sensor.ookla_speedtest_upload_jitter"
+      },
+      labels: {
+        download: "Download",
+        upload: "Upload",
+        ping: "Ping",
+        jitter: "Jitter",
+        grade: "Grade"
       },
       show_gauges: true,
       show_charts: true,
@@ -97,10 +105,11 @@ class OoklaSpeedtestDashboard extends HTMLElement {
 
   /**
    * Card size for Masonry view (1 = 50px)
+   * This helps masonry layout calculate proper column distribution
    * Adjust size based on enabled features
    */
   getCardSize() {
-    let size = 8; // Base size for metrics and footer
+    let size = 10; // Base size for metrics and footer
     if (this._config.show_gauges) size += 3; // Add space for gauges
     if (this._config.show_charts) size += 4; // Add space for charts
     return size;
@@ -109,31 +118,22 @@ class OoklaSpeedtestDashboard extends HTMLElement {
   /**
    * Layout options for Sections view
    * Sections use a 12-column grid system
+   * 
+   * grid_columns: How many columns the card should occupy (1-12)
+   * grid_rows: How many rows the card should occupy (1+), each row is ~56px
+   * grid_min/max: Constraints for user resizing
    */
   static getLayoutOptions() {
     return {
-      grid_columns: 6,        // Half width (50% of 12 columns)
-      grid_min_columns: 6,
-      grid_max_columns: 12,
-      grid_rows: 7,
-      grid_min_rows: 6,
-      grid_max_rows: 9,
+      grid_columns: null,     // Automatic width
+      grid_rows: null,        // Automatic height
     };
   }
 
   getLayoutOptions() {
-    // Calculate dynamic rows based on enabled features
-    let rows = 6; // Base: header + metrics + optional metrics + footer
-    if (this._config.show_gauges) rows += 1.5;
-    if (this._config.show_charts) rows += 1.5;
-
     return {
-      grid_columns: 6,
-      grid_min_columns: 6,
-      grid_max_columns: 12,
-      grid_rows: Math.min(Math.ceil(rows), 9),
-      grid_min_rows: 6,
-      grid_max_rows: 9,
+      grid_columns: null,     // Automatic width
+      grid_rows: null,        // Automatic height
     };
   }
 
@@ -407,326 +407,330 @@ class OoklaSpeedtestDashboard extends HTMLElement {
     this.dispatchEvent(event);
   }
 
-  render() {
-    const e = this._config.entities;
-    this.innerHTML = `
-      <style>
-        :host {
-          display: block;
-          width: 100%;
-          box-sizing: border-box;
-          container-type: inline-size;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-
-        .card {
-          background: rgba(15, 23, 42, 0.6);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border-radius: 24px;
-          padding: 12px;
-          padding-left: max(12px, env(safe-area-inset-left));
-          padding-right: max(12px, env(safe-area-inset-right));
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
-          color: #f8fafc;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          width: 100%;
-          height: 100%;
-          min-height: 0;
-          display: flex;
-          flex-direction: column;
-          overflow: auto;
-        }
-        .header { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
-        .isp-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #f8fafc; }
-        .isp-name::before { content: attr(data-text); }
-        .server-name { font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
-        .server-name::before { content: attr(data-text); }
-        
-        .metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(5, 1fr);
-          gap: 8px;
-          margin-bottom: 10px;
-          flex-shrink: 0;
-        }
-        .metric {
-          background: rgba(255,255,255,0.03);
-          border-radius: 12px;
-          padding: 8px 4px;
-          text-align: center;
-          border: 1px solid rgba(255,255,255,0.02);
-          cursor: pointer;
-          transition: all 0.2s;
-          touch-action: manipulation;
-          -webkit-tap-highlight-color: transparent;
-        }
-        .metric:hover { transform: translateY(-2px); background: rgba(255,255,255,0.05); }
-        .metric:active { transform: translateY(0); background: rgba(255,255,255,0.07); }
-        .metric .label { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600; }
-        .metric .value { font-size: 16px; font-weight: 700; line-height: 1; }
-        .metric .value::before { content: attr(data-val); }
-
-        .optional-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 6px;
-          margin-bottom: 10px;
-          border-top: 1px solid rgba(255,255,255,0.05);
-          padding-top: 10px;
-          flex-shrink: 0;
-        }
-        .optional-grid .metric { padding: 6px 4px; }
-        .optional-grid .metric .value { font-size: 12px; }
-
-        .metric-dl .value { color: #38bdf8; }
-        .metric-ul .value { color: #a78bfa; }
-        .metric-ping .value { color: #fbbf24; }
-        .metric-jitter .value { color: #f472b6; }
-
-        /* Gauge Styles */
-        .gauges-container {
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin: 10px 0;
-          flex-shrink: 0;
-        }
-
-        .gauge {
-          position: relative;
-          width: 110px;
-          height: 110px;
-          flex-shrink: 0;
-        }
-
-        .gauge-svg {
-          transform: rotate(135deg);
-          width: 100%;
-          height: 100%;
-        }
-
-        .gauge-bg {
-          fill: none;
-          stroke: rgba(255,255,255,0.05);
-          stroke-width: 10;
-          stroke-linecap: round;
-          stroke-dasharray: 424 566;
-          stroke-dashoffset: 0;
-        }
-
-        .gauge-fill {
-          fill: none;
-          stroke-width: 10;
-          stroke-linecap: round;
-          stroke-dasharray: 424 566;
-          stroke-dashoffset: 424;
-          transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
-          filter: drop-shadow(0 0 4px currentColor);
-        }
-
-        .gauge-content {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .gauge-label {
-          font-size: 9px;
-          color: #94a3b8;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: 4px;
-          font-weight: 600;
-        }
-
-        .gauge-value {
-          font-size: 24px;
-          font-weight: 800;
-          color: #fff;
-          line-height: 1;
-          letter-spacing: -0.5px;
-          text-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        }
-
-        .gauge-unit {
-          font-size: 9px;
-          color: #64748b;
-          margin-top: 2px;
-          font-weight: 500;
-        }
-
-        .charts-section {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
-          margin-bottom: 10px;
-          flex-shrink: 0;
-          min-height: 100px;
-        }
-        .chart-box {
-          background: rgba(15, 23, 42, 0.4);
-          border-radius: 16px;
-          padding: 8px;
-          border: 1px solid rgba(255,255,255,0.03);
-          cursor: pointer;
-          display: flex;
-          flex-direction: column;
-          min-height: 90px;
-          touch-action: manipulation;
-          -webkit-tap-highlight-color: transparent;
-          transition: all 0.2s;
-        }
-        .chart-box:hover { background: rgba(15, 23, 42, 0.5); }
-        .chart-box:active { transform: scale(0.98); background: rgba(15, 23, 42, 0.6); }
-        .chart-title { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; font-weight: 600; }
-        .chart-box svg { width: 100%; height: 70px; overflow: visible; }
-        
-        .footer {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding-top: 10px;
-          border-top: 1px solid rgba(255,255,255,0.05);
-          flex-shrink: 0;
-        }
-        .last-test { font-size: 11px; color: #64748b; }
-        .run-btn {
-          padding: 6px 15px; border: none; border-radius: 20px;
-          background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-          color: white; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
-          min-height: 32px;
-          min-width: 80px;
-          touch-action: manipulation;
-          -webkit-tap-highlight-color: transparent;
-        }
-        .run-btn:active { transform: scale(0.95); }
-        .run-btn.running { background: #10b981; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-        .result-link {
-          color: #38bdf8; text-decoration: none; font-size: 11px;
-          min-height: 32px;
-          display: inline-flex;
-          align-items: center;
-          touch-action: manipulation;
-          -webkit-tap-highlight-color: transparent;
-        }
-        .result-link:active { transform: scale(0.95); }
-
-        /* Container query responsive adjustments */
-        @container (max-width: 500px) {
-          .card { padding: 14px; }
-          .isp-name { font-size: 16px; }
-          .server-name { font-size: 11px; }
-          .metrics-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-          .metric .label { font-size: 8px; }
-          .metric .value { font-size: 14px; }
-          .optional-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-          .optional-grid .metric { padding: 6px 3px; }
-          .optional-grid .metric .value { font-size: 11px; }
-          .optional-grid .metric .label { font-size: 7px; }
-          .gauge { width: 110px; height: 110px; }
-          .gauge-value { font-size: 22px; }
-          .gauge-label { font-size: 8px; }
-          .gauge-unit { font-size: 8px; }
-          .charts-section { grid-template-columns: 1fr; gap: 8px; }
-          .chart-title { font-size: 9px; }
-        }
-
-        @container (max-width: 400px) {
-          .card { padding: 12px; border-radius: 20px; }
-          .header { margin-bottom: 10px; }
-          .isp-name { font-size: 15px; }
-          .server-name { font-size: 10px; }
-          .metrics-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
-          .metric { padding: 8px 4px; border-radius: 10px; }
-          .metric .label { font-size: 7px; letter-spacing: 0.3px; }
-          .metric .value { font-size: 13px; }
-          .optional-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; padding-top: 10px; margin-bottom: 10px; }
-          .optional-grid .metric { padding: 5px 3px; }
-          .optional-grid .metric .value { font-size: 10px; }
-          .optional-grid .metric .label { font-size: 7px; }
-          .gauges-container { gap: 10px; margin: 12px 0; }
-          .gauge { width: 100px; height: 100px; }
-          .gauge-value { font-size: 20px; }
-          .gauge-label { font-size: 7px; letter-spacing: 0.5px; }
-          .gauge-unit { font-size: 7px; }
-          .gauge-bg, .gauge-fill { stroke-width: 9; }
-          .charts-section { margin-bottom: 10px; }
-          .chart-box { padding: 8px; border-radius: 12px; }
-          .chart-title { font-size: 8px; margin-bottom: 6px; }
-          .footer { padding-top: 10px; flex-direction: column; gap: 8px; align-items: flex-start; }
-          .last-test { font-size: 10px; }
-          .run-btn { font-size: 11px; padding: 5px 12px; align-self: stretch; text-align: center; }
-          .result-link { font-size: 10px; padding: 5px 10px; }
-        }
-
-        @container (max-width: 320px) {
-          .card { padding: 10px; border-radius: 16px; }
-          .isp-name { font-size: 14px; }
-          .server-name { font-size: 9px; }
-          .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 5px; }
-          .metric { padding: 6px 3px; }
-          .metric .label { font-size: 7px; }
-          .metric .value { font-size: 12px; }
-          .optional-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; }
-          .optional-grid .metric { padding: 4px 2px; }
-          .optional-grid .metric .value { font-size: 9px; }
-          .optional-grid .metric .label { font-size: 6px; }
-          .gauges-container { flex-direction: column; gap: 8px; margin: 10px 0; }
-          .gauge { width: 90px; height: 90px; }
-          .gauge-value { font-size: 18px; }
-          .gauge-label { font-size: 7px; }
-          .gauge-unit { font-size: 7px; }
-          .gauge-bg, .gauge-fill { stroke-width: 8; }
-          .chart-box { padding: 6px; }
-          .chart-title { font-size: 7px; }
-          .footer { gap: 6px; }
-          .last-test { font-size: 9px; }
-          .run-btn { font-size: 10px; padding: 4px 10px; border-radius: 16px; }
-        }
-
-        @container (max-width: 280px) {
-          .card { padding: 8px; }
-          .header { margin-bottom: 8px; }
-          .metrics-grid { gap: 4px; margin-bottom: 8px; }
-          .optional-grid { gap: 3px; margin-bottom: 8px; padding-top: 8px; }
-          .gauges-container { margin: 8px 0; }
-          .gauge { width: 80px; height: 80px; }
-          .gauge-value { font-size: 16px; }
-          .gauge-label { font-size: 6px; }
-          .gauge-unit { font-size: 6px; }
-          .charts-section { gap: 6px; margin-bottom: 8px; }
-          .footer { padding-top: 8px; }
-        }
-</style>
+    render() {
+      const e = this._config.entities;
+      const labels = this._config.labels || { download: 'Download', upload: 'Upload', ping: 'Ping', jitter: 'Jitter', grade: 'Grade' };
       
-      <div class="card">
-        <div class="header">
-          <div class="isp-info">
-            <div class="isp-name" data-text="Loading..."></div>
-            <div class="server-name" data-text="-"></div>
-          </div>
-          <a href="#" class="result-link" target="_blank" rel="noopener" style="display:none;">View Results ↗</a>
-        </div>
+      this.innerHTML = `
+        <style>
+          :host {
+            display: block;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            container-type: inline-size;
+          }
+  
+          * {
+            box-sizing: border-box;
+          }
+  
+          .card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 12px;
+            padding-left: max(12px, env(safe-area-inset-left));
+            padding-right: max(12px, env(safe-area-inset-right));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+            color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: auto;
+            /* Ensure card fills available space in sections view */
+            flex: 1;
+          }
+          .header { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
+          .isp-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #f8fafc; }
+          .isp-name::before { content: attr(data-text); }
+          .server-name { font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+          .server-name::before { content: attr(data-text); }
+          
+          .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+          }
+          .metric {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 8px 4px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.02);
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+          }
+          .metric:hover { transform: translateY(-2px); background: rgba(255,255,255,0.05); }
+          .metric:active { transform: translateY(0); background: rgba(255,255,255,0.07); }
+          .metric .label { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600; }
+          .metric .value { font-size: 16px; font-weight: 700; line-height: 1; }
+          .metric .value::before { content: attr(data-val); }
+  
+          .optional-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding-top: 10px;
+            flex-shrink: 0;
+          }
+          .optional-grid .metric { padding: 6px 4px; }
+          .optional-grid .metric .value { font-size: 12px; }
+  
+          .metric-dl .value { color: #38bdf8; }
+          .metric-ul .value { color: #a78bfa; }
+          .metric-ping .value { color: #fbbf24; }
+          .metric-jitter .value { color: #f472b6; }
+  
+          /* Gauge Styles */
+          .gauges-container {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 10px 0;
+            flex-shrink: 0;
+          }
+  
+          .gauge {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            flex-shrink: 0;
+          }
+  
+          .gauge-svg {
+            transform: rotate(135deg);
+            width: 100%;
+            height: 100%;
+          }
+  
+          .gauge-bg {
+            fill: none;
+            stroke: rgba(255,255,255,0.05);
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 424 566;
+            stroke-dashoffset: 0;
+          }
+  
+          .gauge-fill {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 424 566;
+            stroke-dashoffset: 424;
+            transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
+            filter: drop-shadow(0 0 4px currentColor);
+          }
+  
+          .gauge-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+  
+          .gauge-label {
+            font-size: 9px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            font-weight: 600;
+          }
+  
+          .gauge-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          }
+  
+          .gauge-unit {
+            font-size: 9px;
+            color: #64748b;
+            margin-top: 2px;
+            font-weight: 500;
+          }
+  
+          .charts-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+            min-height: 100px;
+          }
+          .chart-box {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 16px;
+            padding: 8px;
+            border: 1px solid rgba(255,255,255,0.03);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            min-height: 90px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s;
+          }
+          .chart-box:hover { background: rgba(15, 23, 42, 0.5); }
+          .chart-box:active { transform: scale(0.98); background: rgba(15, 23, 42, 0.6); }
+          .chart-title { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; font-weight: 600; }
+          .chart-box svg { width: 100%; height: 70px; overflow: visible; }
+          
+          .footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            flex-shrink: 0;
+          }
+          .last-test { font-size: 11px; color: #64748b; }
+          .run-btn {
+            padding: 6px 15px; border: none; border-radius: 20px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            min-height: 32px;
+            min-width: 80px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+          }
+          .run-btn:active { transform: scale(0.95); }
+          .run-btn.running { background: #10b981; animation: pulse 1.5s infinite; }
+          @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+          .result-link {
+            color: #38bdf8; text-decoration: none; font-size: 11px;
+            min-height: 32px;
+            display: inline-flex;
+            align-items: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+          }
+          .result-link:active { transform: scale(0.95); }
+  
+          /* Container query responsive adjustments */
+          @container (max-width: 500px) {
+            .card { padding: 14px; }
+            .isp-name { font-size: 16px; }
+            .server-name { font-size: 11px; }
+            .metrics-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .metric .label { font-size: 8px; }
+            .metric .value { font-size: 14px; }
+            .optional-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+            .optional-grid .metric { padding: 6px 3px; }
+            .optional-grid .metric .value { font-size: 11px; }
+            .optional-grid .metric .label { font-size: 7px; }
+            .gauge { width: 110px; height: 110px; }
+            .gauge-value { font-size: 22px; }
+            .gauge-label { font-size: 8px; }
+            .gauge-unit { font-size: 8px; }
+            .charts-section { grid-template-columns: 1fr; gap: 8px; }
+            .chart-title { font-size: 9px; }
+          }
+  
+          @container (max-width: 400px) {
+            .card { padding: 12px; border-radius: 20px; }
+            .header { margin-bottom: 10px; }
+            .isp-name { font-size: 15px; }
+            .server-name { font-size: 10px; }
+            .metrics-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+            .metric { padding: 8px 4px; border-radius: 10px; }
+            .metric .label { font-size: 7px; letter-spacing: 0.3px; }
+            .metric .value { font-size: 13px; }
+            .optional-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; padding-top: 10px; margin-bottom: 10px; }
+            .optional-grid .metric { padding: 5px 3px; }
+            .optional-grid .metric .value { font-size: 10px; }
+            .optional-grid .metric .label { font-size: 7px; }
+            .gauges-container { gap: 10px; margin: 12px 0; }
+            .gauge { width: 100px; height: 100px; }
+            .gauge-value { font-size: 20px; }
+            .gauge-label { font-size: 7px; letter-spacing: 0.5px; }
+            .gauge-unit { font-size: 7px; }
+            .gauge-bg, .gauge-fill { stroke-width: 9; }
+            .charts-section { margin-bottom: 10px; }
+            .chart-box { padding: 8px; border-radius: 12px; }
+            .chart-title { font-size: 8px; margin-bottom: 6px; }
+            .footer { padding-top: 10px; flex-direction: column; gap: 8px; align-items: flex-start; }
+            .last-test { font-size: 10px; }
+            .run-btn { font-size: 11px; padding: 5px 12px; align-self: stretch; text-align: center; }
+            .result-link { font-size: 10px; padding: 5px 10px; }
+          }
+  
+          @container (max-width: 320px) {
+            .card { padding: 10px; border-radius: 16px; }
+            .isp-name { font-size: 14px; }
+            .server-name { font-size: 9px; }
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+            .metric { padding: 6px 3px; }
+            .metric .label { font-size: 7px; }
+            .metric .value { font-size: 12px; }
+            .optional-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+            .optional-grid .metric { padding: 4px 2px; }
+            .optional-grid .metric .value { font-size: 9px; }
+            .optional-grid .metric .label { font-size: 6px; }
+            .gauges-container { flex-direction: column; gap: 8px; margin: 10px 0; }
+            .gauge { width: 90px; height: 90px; }
+            .gauge-value { font-size: 18px; }
+            .gauge-label { font-size: 7px; }
+            .gauge-unit { font-size: 7px; }
+            .gauge-bg, .gauge-fill { stroke-width: 8; }
+            .chart-box { padding: 6px; }
+            .chart-title { font-size: 7px; }
+            .footer { gap: 6px; }
+            .last-test { font-size: 9px; }
+            .run-btn { font-size: 10px; padding: 4px 10px; border-radius: 16px; }
+          }
+  
+          @container (max-width: 280px) {
+            .card { padding: 8px; }
+            .header { margin-bottom: 8px; }
+            .metrics-grid { gap: 4px; margin-bottom: 8px; }
+            .optional-grid { gap: 3px; margin-bottom: 8px; padding-top: 8px; }
+            .gauges-container { margin: 8px 0; }
+            .gauge { width: 80px; height: 80px; }
+            .gauge-value { font-size: 16px; }
+            .gauge-label { font-size: 6px; }
+            .gauge-unit { font-size: 6px; }
+            .charts-section { gap: 6px; margin-bottom: 8px; }
+            .footer { padding-top: 8px; }
+          }
+  </style>
         
-        <div class="metrics-grid">
-          <div class="metric metric-dl" id="m-dl"><div class="label">Download</div><div class="value"></div></div>
-          <div class="metric metric-ul" id="m-ul"><div class="label">Upload</div><div class="value"></div></div>
-          <div class="metric metric-ping" id="m-ping"><div class="label">Ping</div><div class="value"></div></div>
-          <div class="metric metric-jitter" id="m-jitter"><div class="label">Jitter</div><div class="value"></div></div>
-          <div class="metric metric-grade" id="m-grade"><div class="label">Grade</div><div class="value">-</div></div>
-        </div>
-
+        <div class="card">
+          <div class="header">
+            <div class="isp-info">
+              <div class="isp-name" data-text="Loading..."></div>
+              <div class="server-name" data-text="-"></div>
+            </div>
+            <a href="#" class="result-link" target="_blank" rel="noopener" style="display:none;">View Results ↗</a>
+          </div>
+          
+          <div class="metrics-grid">
+            <div class="metric metric-dl" id="m-dl"><div class="label">${labels.download}</div><div class="value"></div></div>
+            <div class="metric metric-ul" id="m-ul"><div class="label">${labels.upload}</div><div class="value"></div></div>
+            <div class="metric metric-ping" id="m-ping"><div class="label">${labels.ping}</div><div class="value"></div></div>
+            <div class="metric metric-jitter" id="m-jitter"><div class="label">${labels.jitter}</div><div class="value"></div></div>
+            <div class="metric metric-grade" id="m-grade"><div class="label">${labels.grade}</div><div class="value">-</div></div>
+          </div>
         <div class="optional-grid" id="opt-grid">
           <div class="metric metric-ping-min" id="m-pmin"><div class="label">Ping Min</div><div class="value"></div></div>
           <div class="metric metric-ping-max" id="m-pmax"><div class="label">Ping Max</div><div class="value"></div></div>
@@ -752,7 +756,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
               <circle class="gauge-fill" cx="100" cy="100" r="90" stroke="url(#grad-download-dash)"></circle>
             </svg>
             <div class="gauge-content">
-              <div class="gauge-label">Download</div>
+              <div class="gauge-label">${labels.download}</div>
               <div class="gauge-value">0</div>
               <div class="gauge-unit">Mbps</div>
             </div>
@@ -770,7 +774,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
               <circle class="gauge-fill" cx="100" cy="100" r="90" stroke="url(#grad-upload-dash)"></circle>
             </svg>
             <div class="gauge-content">
-              <div class="gauge-label">Upload</div>
+              <div class="gauge-label">${labels.upload}</div>
               <div class="gauge-value">0</div>
               <div class="gauge-unit">Mbps</div>
             </div>
@@ -780,9 +784,9 @@ class OoklaSpeedtestDashboard extends HTMLElement {
 
         ${this._config.show_charts ? `
         <div class="charts-section">
-          <div class="chart-box chart-download" id="c-dl"><div class="chart-title">Download</div><svg viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
-          <div class="chart-box chart-upload" id="c-ul"><div class="chart-title">Upload</div><svg viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
-          <div class="chart-box chart-ping" id="c-ping"><div class="chart-title">Ping</div><svg viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
+          <div class="chart-box chart-download" id="c-dl"><div class="chart-title">${labels.download}</div><svg viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
+          <div class="chart-box chart-upload" id="c-ul"><div class="chart-title">${labels.upload}</div><svg viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
+          <div class="chart-box chart-ping" id="c-ping"><div class="chart-title">${labels.ping}</div><svg viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
         </div>
         ` : ''}
         
@@ -910,6 +914,41 @@ class OoklaSpeedtestDashboardEditor extends HTMLElement {
     genDiv.appendChild(historyOption);
     container.appendChild(genDiv);
 
+    // Labels Section
+    const labelsDiv = document.createElement('div');
+    labelsDiv.style.cssText = "border: 1px solid var(--divider-color, #444); border-radius: 8px; padding: 10px; background: var(--card-background-color, #222); margin-top: 10px;";
+    labelsDiv.innerHTML = `<div style="font-weight: bold; margin-bottom: 10px; color: var(--primary-color, #0ea5e9); font-size: 13px; text-transform: uppercase;">Labels</div>`;
+
+    const createLabelInput = (key, label, defaultValue) => {
+      const div = document.createElement('div');
+      div.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;";
+      
+      const lbl = document.createElement('label');
+      lbl.innerText = label;
+      lbl.style.cssText = "font-size: 12px; color: var(--secondary-text-color, #ccc);";
+      div.appendChild(lbl);
+
+      const input = document.createElement('input');
+      input.type = "text";
+      input.value = (this._config.labels && this._config.labels[key]) || defaultValue;
+      input.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #444); background: var(--card-background-color, #111); color: var(--primary-text-color, #fff); width: 100px;";
+      input.addEventListener('change', (e) => {
+        const labels = { ...(this._config.labels || {}) };
+        labels[key] = e.target.value;
+        this.configChanged({ ...this._config, labels });
+      });
+      
+      div.appendChild(input);
+      return div;
+    };
+
+    labelsDiv.appendChild(createLabelInput('download', 'Download', 'Download'));
+    labelsDiv.appendChild(createLabelInput('upload', 'Upload', 'Upload'));
+    labelsDiv.appendChild(createLabelInput('ping', 'Ping', 'Ping'));
+    labelsDiv.appendChild(createLabelInput('jitter', 'Jitter', 'Jitter'));
+    labelsDiv.appendChild(createLabelInput('grade', 'Grade', 'Grade'));
+    container.appendChild(labelsDiv);
+
     // Helpers
     const createSection = (title, items) => {
       const secDiv = document.createElement('div');
@@ -977,3 +1016,5 @@ window.customCards.push({
   description: "Fully configurable dashboard with gauges, charts, and 20+ sensors",
   preview: true
 });
+
+console.info("%c OOKLA SPEEDTEST DASHBOARD %c v1.4.3 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

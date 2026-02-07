@@ -11,7 +11,9 @@
           "scan_interval": "Scan Interval",
           "start_time": "Start Time",
           "isp_dl_speed": "ISP Download Speed (Mbit/s)",
-          "isp_ul_speed": "ISP Upload Speed (Mbit/s)"
+          "isp_ul_speed": "ISP Upload Speed (Mbit/s)",
+          "enable_latency": "Enable Extended Latency Sensors",
+          "enable_compliance": "Enable Stability & Compliance Sensors"
         },
         "data_description": {
           "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
@@ -20,7 +22,9 @@
           "scan_interval": "How often to automatically run speed tests. Default is 24 hours. Only applies when Manual Mode is disabled. Lower values will use more bandwidth.",
           "start_time": "Optional: Time to align the schedule (e.g., '14:00'). If set, the first test runs at this time, then every 'Scan Interval'. Useful for 'every hour on the hour' (Set 00:00 and interval 1 hour).",
           "isp_dl_speed": "Optional: Your rated download speed from your ISP. Used to calculate 'Plan Compliance %'.",
-          "isp_ul_speed": "Optional: Your rated upload speed from your ISP. Used to calculate 'Plan Compliance %'."
+          "isp_ul_speed": "Optional: Your rated upload speed from your ISP. Used to calculate 'Plan Compliance %'.",
+          "enable_latency": "If enabled, creates additional sensors for detailed latency stats (min/max/iqm) for Ping, Download, and Upload.",
+          "enable_compliance": "If enabled, creates sensors for Plan Compliance % (requires ISP speeds above) and Jitter stats."
         }
       }
     },
@@ -44,7 +48,9 @@
           "scan_interval": "Scan Interval",
           "start_time": "Start Time",
           "isp_dl_speed": "ISP Download Speed (Mbit/s)",
-          "isp_ul_speed": "ISP Upload Speed (Mbit/s)"
+          "isp_ul_speed": "ISP Upload Speed (Mbit/s)",
+          "enable_latency": "Enable Extended Latency Sensors",
+          "enable_compliance": "Enable Stability & Compliance Sensors"
         },
         "data_description": {
           "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
@@ -53,7 +59,9 @@
           "scan_interval": "How often to automatically run speed tests. Default is 24 hours. Only applies when Manual Mode is disabled. Lower values will use more bandwidth.",
           "start_time": "Optional: Time to align the schedule (e.g., '14:00'). If set, the first test runs at this time, then every 'Scan Interval'. Useful for 'every hour on the hour' (Set 00:00 and interval 1 hour).",
           "isp_dl_speed": "Optional: Your rated download speed from your ISP. Used to calculate 'Plan Compliance %'.",
-          "isp_ul_speed": "Optional: Your rated upload speed from your ISP. Used to calculate 'Plan Compliance %'."
+          "isp_ul_speed": "Optional: Your rated upload speed from your ISP. Used to calculate 'Plan Compliance %'.",
+          "enable_latency": "If enabled, creates additional sensors for detailed latency stats (min/max/iqm) for Ping, Download, and Upload.",
+          "enable_compliance": "If enabled, creates sensors for Plan Compliance % (requires ISP speeds above) and Jitter stats."
         }
       }
     },

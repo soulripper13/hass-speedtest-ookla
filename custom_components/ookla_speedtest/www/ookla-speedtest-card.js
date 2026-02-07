@@ -2,12 +2,13 @@
  * Ookla Speedtest Card for Home Assistant
  * A custom Lovelace card that recreates the iconic Ookla Speedtest interface
  *
- * Version: 1.3.0 - Fixed masonry and sections layout compatibility
+ * Version: 1.4.0 - Improved masonry and sections layout compatibility
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
- * - Sections: Uses 6 columns x 10 rows grid by default
+ * - Sections: Uses 6 columns x 4 rows grid by default
  * - Both layouts fully supported with proper height handling
+ * - Added cache busting support
  */
 
 class OoklaSpeedtestCard extends HTMLElement {
@@ -35,6 +36,13 @@ class OoklaSpeedtestCard extends HTMLElement {
         server: "sensor.ookla_speedtest_server",
         last_test: "sensor.ookla_speedtest_last_test",
         result_url: "sensor.ookla_speedtest_result_url"
+      },
+      labels: {
+        download: "Download",
+        upload: "Upload",
+        ping: "Ping",
+        jitter: "Jitter",
+        grade: "Grade"
       },
       max_download: 1000,
       max_upload: 500,
@@ -68,28 +76,32 @@ class OoklaSpeedtestCard extends HTMLElement {
 
   /**
    * Card size for Masonry view (1 = 50px)
+   * This helps masonry layout calculate proper column distribution
    */
   getCardSize() {
-    return 11; // ~550px height
+    return 12; // ~600px height
   }
 
   /**
    * Layout options for Sections view
    * Sections use a 12-column grid system
+   * 
+   * grid_columns: How many columns the card should occupy (1-12)
+   * grid_rows: How many rows the card should occupy (1+), each row is ~56px
+   * grid_min/max: Constraints for user resizing
    */
   static getLayoutOptions() {
     return {
-      grid_columns: 6,        // Half width (50% of 12 columns)
-      grid_min_columns: 4,
-      grid_max_columns: 12,
-      grid_rows: 3,
-      grid_min_rows: 3,
-      grid_max_rows: 4,
+      grid_columns: null,     // Automatic width
+      grid_rows: null,        // Automatic height
     };
   }
 
   getLayoutOptions() {
-    return OoklaSpeedtestCard.getLayoutOptions();
+    return {
+      grid_columns: null,     // Automatic width
+      grid_rows: null,        // Automatic height
+    };
   }
 
   updateCard() {
@@ -143,6 +155,16 @@ class OoklaSpeedtestCard extends HTMLElement {
     if (!this._hass || !entityId) return null;
     const state = this._hass.states[entityId];
     return state ? state.state : null;
+  }
+  
+  _showMoreInfo(entityId) {
+    if (!entityId) return;
+    const event = new CustomEvent('hass-more-info', {
+      bubbles: true,
+      composed: true,
+      detail: { entityId }
+    });
+    this.dispatchEvent(event);
   }
 
   _updateGauge(type, value, max) {
@@ -216,12 +238,15 @@ class OoklaSpeedtestCard extends HTMLElement {
   }
 
   render() {
+    const labels = this._config.labels || { download: 'Download', upload: 'Upload', ping: 'Ping', jitter: 'Jitter', grade: 'Grade' };
+    
     this.innerHTML = `
       <style>
         :host {
           display: block;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           width: 100%;
+          height: 100%;
           box-sizing: border-box;
           container-type: inline-size;
         }
@@ -247,6 +272,8 @@ class OoklaSpeedtestCard extends HTMLElement {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          /* Ensure card fills available space in sections view */
+          flex: 1;
         }
 
         .card::before {
@@ -319,6 +346,12 @@ class OoklaSpeedtestCard extends HTMLElement {
           width: 140px;
           height: 140px;
           flex-shrink: 0;
+          cursor: pointer;
+          transition: transform 0.2s;
+        }
+        
+        .gauge:hover {
+          transform: scale(1.05);
         }
         
         .gauge-svg {
@@ -452,6 +485,7 @@ class OoklaSpeedtestCard extends HTMLElement {
           text-align: center;
           border: 1px solid rgba(255,255,255,0.02);
           transition: transform 0.2s, background 0.2s;
+          cursor: pointer;
         }
         
         .metric:hover {
@@ -500,6 +534,7 @@ class OoklaSpeedtestCard extends HTMLElement {
           display: flex;
           align-items: center;
           gap: 6px;
+          cursor: pointer;
         }
         
         .last-test::before {
@@ -579,7 +614,7 @@ class OoklaSpeedtestCard extends HTMLElement {
                 <circle class="gauge-fill" cx="100" cy="100" r="90" stroke="url(#grad-download)"></circle>
               </svg>
               <div class="gauge-content">
-                <div class="gauge-label">Download</div>
+                <div class="gauge-label">${labels.download}</div>
                 <div class="gauge-value">0</div>
                 <div class="gauge-unit">Mbps</div>
               </div>
@@ -591,7 +626,7 @@ class OoklaSpeedtestCard extends HTMLElement {
                 <circle class="gauge-fill" cx="100" cy="100" r="90" stroke="url(#grad-upload)"></circle>
               </svg>
               <div class="gauge-content">
-                <div class="gauge-label">Upload</div>
+                <div class="gauge-label">${labels.upload}</div>
                 <div class="gauge-value">0</div>
                 <div class="gauge-unit">Mbps</div>
               </div>
@@ -605,17 +640,17 @@ class OoklaSpeedtestCard extends HTMLElement {
           <div class="metrics">
             <div class="metric metric-ping">
               <div class="metric-icon">⚡</div>
-              <div class="metric-label">Ping</div>
+              <div class="metric-label">${labels.ping}</div>
               <div class="metric-value">- ms</div>
             </div>
             <div class="metric metric-jitter">
               <div class="metric-icon">📶</div>
-              <div class="metric-label">Jitter</div>
+              <div class="metric-label">${labels.jitter}</div>
               <div class="metric-value">- ms</div>
             </div>
             <div class="metric metric-grade">
               <div class="metric-icon">🏆</div>
-              <div class="metric-label">Grade</div>
+              <div class="metric-label">${labels.grade}</div>
               <div class="metric-value">-</div>
             </div>
           </div>
@@ -628,11 +663,20 @@ class OoklaSpeedtestCard extends HTMLElement {
       </div>
     `;
 
-    // Add event listener
+    // Add event listeners
     const goBtn = this.querySelector('.go-button');
     if (goBtn) {
       goBtn.addEventListener('click', () => this._runSpeedtest());
     }
+
+    // Interactive elements
+    const entities = this._config.entities;
+    this.querySelector('.gauge-download')?.addEventListener('click', () => this._showMoreInfo(entities.download));
+    this.querySelector('.gauge-upload')?.addEventListener('click', () => this._showMoreInfo(entities.upload));
+    this.querySelector('.metric-ping')?.addEventListener('click', () => this._showMoreInfo(entities.ping));
+    this.querySelector('.metric-jitter')?.addEventListener('click', () => this._showMoreInfo(entities.jitter));
+    this.querySelector('.metric-grade')?.addEventListener('click', () => this._showMoreInfo(entities.grade));
+    this.querySelector('.last-test')?.addEventListener('click', () => this._showMoreInfo(entities.last_test));
   }
 }
 
@@ -645,6 +689,13 @@ class OoklaSpeedtestCardEditor extends HTMLElement {
     this.render();
   }
 
+  set hass(hass) {
+    this._hass = hass;
+    if (this._elements) {
+      this._elements.forEach(el => el.hass = hass);
+    }
+  }
+
   configChanged(newConfig) {
     const event = new CustomEvent("config-changed", {
       detail: { config: newConfig },
@@ -655,43 +706,125 @@ class OoklaSpeedtestCardEditor extends HTMLElement {
   }
 
   render() {
-    if (!this.innerHTML) {
-      this.innerHTML = `
-        <style>
-          .card-config { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-          .option { display: flex; align-items: center; justify-content: space-between; }
-          .label { font-size: 14px; color: var(--primary-text-color); }
-          input { 
-            padding: 8px; 
-            border-radius: 4px; 
-            border: 1px solid var(--divider-color, #e0e0e0); 
-            background: var(--card-background-color, #fff); 
-            color: var(--primary-text-color, #000);
-            width: 100px;
-          }
-          .title { font-weight: 500; margin-bottom: 8px; color: var(--primary-text-color); display: block;}
-        </style>
-        <div class="card-config">
-          <span class="title">Gauge Scale Settings</span>
-          <div class="option">
-            <label class="label" for="max_download">Max Download (Mbps)</label>
-            <input type="number" id="max_download" value="${this._config.max_download || 1000}">
-          </div>
-          <div class="option">
-            <label class="label" for="max_upload">Max Upload (Mbps)</label>
-            <input type="number" id="max_upload" value="${this._config.max_upload || 500}">
-          </div>
-        </div>
-      `;
+    if (this._elements) return;
 
-      this.querySelectorAll("input").forEach(input => {
-        input.addEventListener("change", (e) => {
-          const key = e.target.id;
-          const val = Number(e.target.value);
-          this.configChanged({ ...this._config, [key]: val });
-        });
+    this.innerHTML = '';
+    this._elements = [];
+
+    const container = document.createElement('div');
+    container.style.cssText = "display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;";
+
+    // Gauge Settings Section
+    const gaugeDiv = document.createElement('div');
+    gaugeDiv.style.cssText = "border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; padding: 10px; background: var(--card-background-color, rgba(0,0,0,0.2));";
+    gaugeDiv.innerHTML = `<div style="font-weight: 500; margin-bottom: 10px; color: var(--primary-text-color); font-size: 14px;">Gauge Scale Settings</div>`;
+
+    const createInput = (key, label, defaultValue) => {
+      const div = document.createElement('div');
+      div.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;";
+      
+      const lbl = document.createElement('label');
+      lbl.innerText = label;
+      lbl.style.cssText = "font-size: 13px; color: var(--primary-text-color);";
+      div.appendChild(lbl);
+
+      const input = document.createElement('input');
+      input.type = "number";
+      input.value = this._config[key] || defaultValue;
+      input.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #888); background: var(--card-background-color, #fff); color: var(--primary-text-color, #000); width: 80px;";
+      input.addEventListener('change', (e) => {
+        this.configChanged({ ...this._config, [key]: Number(e.target.value) });
       });
-    }
+      
+      div.appendChild(input);
+      return div;
+    };
+
+    gaugeDiv.appendChild(createInput('max_download', 'Max Download (Mbps)', 1000));
+    gaugeDiv.appendChild(createInput('max_upload', 'Max Upload (Mbps)', 500));
+    container.appendChild(gaugeDiv);
+
+    // Labels Section
+    const labelsDiv = document.createElement('div');
+    labelsDiv.style.cssText = "border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; padding: 10px; background: var(--card-background-color, rgba(0,0,0,0.2));";
+    labelsDiv.innerHTML = `<div style="font-weight: 500; margin-bottom: 10px; color: var(--primary-text-color); font-size: 14px;">Labels</div>`;
+
+    const createLabelInput = (key, label, defaultValue) => {
+      const div = document.createElement('div');
+      div.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;";
+      
+      const lbl = document.createElement('label');
+      lbl.innerText = label;
+      lbl.style.cssText = "font-size: 13px; color: var(--primary-text-color);";
+      div.appendChild(lbl);
+
+      const input = document.createElement('input');
+      input.type = "text";
+      input.value = (this._config.labels && this._config.labels[key]) || defaultValue;
+      input.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #888); background: var(--card-background-color, #fff); color: var(--primary-text-color, #000); width: 100px;";
+      input.addEventListener('change', (e) => {
+        const labels = { ...(this._config.labels || {}) };
+        labels[key] = e.target.value;
+        this.configChanged({ ...this._config, labels });
+      });
+      
+      div.appendChild(input);
+      return div;
+    };
+
+    labelsDiv.appendChild(createLabelInput('download', 'Download', 'Download'));
+    labelsDiv.appendChild(createLabelInput('upload', 'Upload', 'Upload'));
+    labelsDiv.appendChild(createLabelInput('ping', 'Ping', 'Ping'));
+    labelsDiv.appendChild(createLabelInput('jitter', 'Jitter', 'Jitter'));
+    labelsDiv.appendChild(createLabelInput('grade', 'Grade', 'Grade'));
+    container.appendChild(labelsDiv);
+
+    // Entities Section
+    const entitiesDiv = document.createElement('div');
+    entitiesDiv.style.cssText = "border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; padding: 10px; background: var(--card-background-color, rgba(0,0,0,0.2));";
+    entitiesDiv.innerHTML = `<div style="font-weight: 500; margin-bottom: 10px; color: var(--primary-text-color); font-size: 14px;">Entities</div>`;
+
+    const createPicker = (key, label) => {
+      const div = document.createElement('div');
+      div.style.marginBottom = "12px";
+      
+      const lbl = document.createElement('label');
+      lbl.innerText = label;
+      lbl.style.cssText = "font-size: 12px; color: var(--secondary-text-color); margin-bottom: 4px; display: block;";
+      div.appendChild(lbl);
+
+      const picker = document.createElement('ha-entity-picker');
+      picker.hass = this._hass;
+      picker.value = (this._config.entities && this._config.entities[key]) || '';
+      picker.includeDomains = ['sensor'];
+      picker.allowCustomEntity = true;
+      picker.addEventListener('value-changed', (e) => {
+        const entities = { ...(this._config.entities || {}) };
+        entities[key] = e.detail.value;
+        this.configChanged({ ...this._config, entities });
+      });
+      
+      this._elements.push(picker);
+      div.appendChild(picker);
+      return div;
+    };
+
+    const entityFields = [
+      { key: 'download', label: 'Download Speed' },
+      { key: 'upload', label: 'Upload Speed' },
+      { key: 'ping', label: 'Ping Latency' },
+      { key: 'jitter', label: 'Jitter' },
+      { key: 'grade', label: 'Bufferbloat Grade' },
+      { key: 'isp', label: 'ISP Name' },
+      { key: 'server', label: 'Server Name' },
+      { key: 'last_test', label: 'Last Test Time' },
+      { key: 'result_url', label: 'Result URL' }
+    ];
+
+    entityFields.forEach(f => entitiesDiv.appendChild(createPicker(f.key, f.label)));
+    container.appendChild(entitiesDiv);
+
+    this.appendChild(container);
   }
 }
 
@@ -707,4 +840,4 @@ window.customCards.push({
   documentationURL: "https://github.com/soulripper13/hass-speedtest-ookla"
 });
 
-console.info("%c OOKLA SPEEDTEST CARD %c v1.3.0 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST CARD %c v1.4.3 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

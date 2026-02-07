@@ -2,12 +2,13 @@
  * Ookla Speedtest Card - Minimal Version
  * A clean, simple speedtest card with large typography
  *
- * Version: 1.3.0 - Fixed masonry and sections layout compatibility
+ * Version: 1.4.0 - Improved masonry and sections layout compatibility
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
- * - Sections: Uses 4 columns x 6 rows grid by default
+ * - Sections: Uses 4 columns x 3 rows grid by default
  * - Both layouts fully supported with proper height handling
+ * - Added cache busting support
  */
 
 class OoklaSpeedtestMinimal extends HTMLElement {
@@ -29,6 +30,11 @@ class OoklaSpeedtestMinimal extends HTMLElement {
         upload: "sensor.ookla_speedtest_upload",
         ping: "sensor.ookla_speedtest_ping",
         isp: "sensor.ookla_speedtest_isp"
+      },
+      labels: {
+        download: "Download",
+        upload: "Upload",
+        ping: "Ping"
       }
     };
   }
@@ -48,6 +54,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
 
   /**
    * Card size for Masonry view (1 = 50px)
+   * This helps masonry layout calculate proper column distribution
    */
   getCardSize() {
     return 6; // ~300px height
@@ -56,20 +63,23 @@ class OoklaSpeedtestMinimal extends HTMLElement {
   /**
    * Layout options for Sections view
    * Sections use a 12-column grid system
+   * 
+   * grid_columns: How many columns the card should occupy (1-12)
+   * grid_rows: How many rows the card should occupy (1+), each row is ~56px
+   * grid_min/max: Constraints for user resizing
    */
   static getLayoutOptions() {
     return {
-      grid_columns: 4,        // 1/3 width (33% of 12 columns)
-      grid_min_columns: 4,
-      grid_max_columns: 6,
-      grid_rows: 2,
-      grid_min_rows: 2,
-      grid_max_rows: 3,
+      grid_columns: null,     // Automatic width
+      grid_rows: null,        // Automatic height
     };
   }
 
   getLayoutOptions() {
-    return OoklaSpeedtestMinimal.getLayoutOptions();
+    return {
+      grid_columns: null,     // Automatic width
+      grid_rows: null,        // Automatic height
+    };
   }
 
   updateCard() {
@@ -105,6 +115,16 @@ class OoklaSpeedtestMinimal extends HTMLElement {
     const state = this._hass.states[entityId];
     return state ? parseFloat(state.state) || state.state : null;
   }
+  
+  _showMoreInfo(entityId) {
+    if (!entityId) return;
+    const event = new CustomEvent('hass-more-info', {
+      bubbles: true,
+      composed: true,
+      detail: { entityId }
+    });
+    this.dispatchEvent(event);
+  }
 
   _runTest() {
     if (this._hass) {
@@ -118,11 +138,14 @@ class OoklaSpeedtestMinimal extends HTMLElement {
   }
 
   render() {
+    const labels = this._config.labels || { download: 'Download', upload: 'Upload', ping: 'Ping' };
+    
     this.innerHTML = `
       <style>
         :host {
           display: block;
           width: 100%;
+          height: 100%;
           box-sizing: border-box;
           container-type: inline-size;
         }
@@ -147,6 +170,8 @@ class OoklaSpeedtestMinimal extends HTMLElement {
           display: flex;
           flex-direction: column;
           justify-content: center;
+          /* Ensure card fills available space in sections view */
+          flex: 1;
         }
         .isp-text {
           font-size: 11px;
@@ -163,6 +188,11 @@ class OoklaSpeedtestMinimal extends HTMLElement {
         }
         .speed-block {
           flex: 1;
+          cursor: pointer;
+          transition: transform 0.2s;
+        }
+        .speed-block:hover {
+          transform: translateY(-2px);
         }
         .speed-label {
           font-size: 10px;
@@ -195,6 +225,11 @@ class OoklaSpeedtestMinimal extends HTMLElement {
           padding: 8px 16px;
           border-radius: 12px;
           width: fit-content;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .ping-row:hover {
+          background: rgba(255,255,255,0.08);
         }
         .ping-value {
           color: #fbbf24;
@@ -227,22 +262,22 @@ class OoklaSpeedtestMinimal extends HTMLElement {
         <div class="isp-text">Internet Speed</div>
         
         <div class="speeds">
-          <div class="speed-block">
+          <div class="speed-block speed-block-dl">
             <div class="speed-label">
-              <span class="arrow-down">⬇</span> Download
+              <span class="arrow-down">⬇</span> ${labels.download}
             </div>
             <div class="speed-value speed-download">--</div>
           </div>
-          <div class="speed-block">
+          <div class="speed-block speed-block-ul">
             <div class="speed-label">
-              <span class="arrow-up">⬆</span> Upload
+              <span class="arrow-up">⬆</span> ${labels.upload}
             </div>
             <div class="speed-value speed-upload">--</div>
           </div>
         </div>
         
         <div class="ping-row">
-          <span>⚡</span> Ping: <span class="ping-value">--</span>
+          <span>⚡</span> ${labels.ping}: <span class="ping-value">--</span>
         </div>
         
         <button class="test-btn">Run Speed Test</button>
@@ -250,6 +285,12 @@ class OoklaSpeedtestMinimal extends HTMLElement {
     `;
 
     this.querySelector('.test-btn')?.addEventListener('click', () => this._runTest());
+    
+    // Interactive elements
+    const e = this._config.entities;
+    this.querySelector('.speed-block-dl')?.addEventListener('click', () => this._showMoreInfo(e.download));
+    this.querySelector('.speed-block-ul')?.addEventListener('click', () => this._showMoreInfo(e.upload));
+    this.querySelector('.ping-row')?.addEventListener('click', () => this._showMoreInfo(e.ping));
   }
 }
 
@@ -259,6 +300,13 @@ class OoklaSpeedtestMinimalEditor extends HTMLElement {
   setConfig(config) {
     this._config = config;
     this.render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (this._elements) {
+      this._elements.forEach(el => el.hass = hass);
+    }
   }
 
   configChanged(newConfig) {
@@ -271,17 +319,83 @@ class OoklaSpeedtestMinimalEditor extends HTMLElement {
   }
 
   render() {
-    if (!this.innerHTML) {
-      this.innerHTML = `
-        <style>
-          .card-config { display: flex; flex-direction: column; gap: 12px; padding: 8px; }
-          .info { font-size: 14px; color: var(--secondary-text-color); }
-        </style>
-        <div class="card-config">
-          <span class="info">Minimal card uses default sensors automatically. Configure entities in YAML if needed.</span>
-        </div>
-      `;
-    }
+    if (this._elements) return;
+
+    this.innerHTML = '';
+    this._elements = [];
+
+    const container = document.createElement('div');
+    container.style.cssText = "display: flex; flex-direction: column; gap: 12px; padding: 10px;";
+
+    // Labels Section
+    const labelsDiv = document.createElement('div');
+    labelsDiv.style.cssText = "border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; padding: 10px; background: var(--card-background-color, rgba(0,0,0,0.2));";
+    labelsDiv.innerHTML = `<div style="font-weight: 500; margin-bottom: 10px; color: var(--primary-text-color); font-size: 14px;">Labels</div>`;
+
+    const createLabelInput = (key, label, defaultValue) => {
+      const div = document.createElement('div');
+      div.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;";
+      
+      const lbl = document.createElement('label');
+      lbl.innerText = label;
+      lbl.style.cssText = "font-size: 13px; color: var(--primary-text-color);";
+      div.appendChild(lbl);
+
+      const input = document.createElement('input');
+      input.type = "text";
+      input.value = (this._config.labels && this._config.labels[key]) || defaultValue;
+      input.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #888); background: var(--card-background-color, #fff); color: var(--primary-text-color, #000); width: 100px;";
+      input.addEventListener('change', (e) => {
+        const labels = { ...(this._config.labels || {}) };
+        labels[key] = e.target.value;
+        this.configChanged({ ...this._config, labels });
+      });
+      
+      div.appendChild(input);
+      return div;
+    };
+
+    labelsDiv.appendChild(createLabelInput('download', 'Download', 'Download'));
+    labelsDiv.appendChild(createLabelInput('upload', 'Upload', 'Upload'));
+    labelsDiv.appendChild(createLabelInput('ping', 'Ping', 'Ping'));
+    container.appendChild(labelsDiv);
+
+    const entitiesDiv = document.createElement('div');
+    entitiesDiv.style.cssText = "border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; padding: 10px; background: var(--card-background-color, rgba(0,0,0,0.2));";
+    entitiesDiv.innerHTML = `<div style="font-weight: 500; margin-bottom: 10px; color: var(--primary-text-color); font-size: 14px;">Entities</div>`;
+
+    const createPicker = (key, label) => {
+      const div = document.createElement('div');
+      div.style.marginBottom = "12px";
+      
+      const lbl = document.createElement('label');
+      lbl.innerText = label;
+      lbl.style.cssText = "font-size: 12px; color: var(--secondary-text-color); margin-bottom: 4px; display: block;";
+      div.appendChild(lbl);
+
+      const picker = document.createElement('ha-entity-picker');
+      picker.hass = this._hass;
+      picker.value = (this._config.entities && this._config.entities[key]) || '';
+      picker.includeDomains = ['sensor'];
+      picker.allowCustomEntity = true;
+      picker.addEventListener('value-changed', (e) => {
+        const entities = { ...(this._config.entities || {}) };
+        entities[key] = e.detail.value;
+        this.configChanged({ ...this._config, entities });
+      });
+      
+      this._elements.push(picker);
+      div.appendChild(picker);
+      return div;
+    };
+
+    entitiesDiv.appendChild(createPicker('download', 'Download Entity'));
+    entitiesDiv.appendChild(createPicker('upload', 'Upload Entity'));
+    entitiesDiv.appendChild(createPicker('ping', 'Ping Entity'));
+    entitiesDiv.appendChild(createPicker('isp', 'ISP Entity'));
+    
+    container.appendChild(entitiesDiv);
+    this.appendChild(container);
   }
 }
 customElements.define("ookla-speedtest-minimal-editor", OoklaSpeedtestMinimalEditor);
@@ -294,3 +408,5 @@ window.customCards.push({
   description: "Clean minimal speedtest card with large typography",
   preview: true
 });
+
+console.info("%c OOKLA SPEEDTEST MINIMAL %c v1.4.3 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

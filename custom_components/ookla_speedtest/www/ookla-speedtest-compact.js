@@ -2,13 +2,14 @@
  * Ookla Speedtest Card - Compact Version (Bubble Style)
  * Minimalist pill-shaped card inspired by Bubble Card design
  *
- * Version: 2.0.0 - Redesigned with Bubble Card aesthetic
+ * Version: 1.4.0 - Improved masonry and sections layout compatibility
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
- * - Sections: Uses 4 columns x 2 rows grid by default
+ * - Sections: Uses 3 columns x 1 row grid by default
  * - Both layouts fully supported with proper height handling
  * - Mobile-first, minimalist design
+ * - Added cache busting support
  */
 
 class OoklaSpeedtestCompact extends HTMLElement {
@@ -29,6 +30,11 @@ class OoklaSpeedtestCompact extends HTMLElement {
         download: "sensor.ookla_speedtest_download",
         upload: "sensor.ookla_speedtest_upload",
         ping: "sensor.ookla_speedtest_ping"
+      },
+      labels: {
+        download: "Download",
+        upload: "Upload",
+        ping: "Ping"
       }
     };
   }
@@ -48,6 +54,7 @@ class OoklaSpeedtestCompact extends HTMLElement {
 
   /**
    * Card size for Masonry view (1 = 50px)
+   * This helps masonry layout calculate proper column distribution
    */
   getCardSize() {
     return 2; // ~100px height (compact but readable)
@@ -55,22 +62,24 @@ class OoklaSpeedtestCompact extends HTMLElement {
 
   /**
    * Layout options for Sections view (Bubble Card style)
-   * Standard Sections view uses a 4-column grid.
-   * Default to half-width (2 columns) for compact look.
+   * Sections use a 12-column grid system
+   * 
+   * grid_columns: How many columns the card should occupy (1-12)
+   * grid_rows: How many rows the card should occupy (1+), each row is ~56px
+   * grid_min/max: Constraints for user resizing
    */
   static getLayoutOptions() {
     return {
-      grid_columns: 2,
-      grid_min_columns: 2,
-      grid_max_columns: 4,
-      grid_rows: 1,
-      grid_min_rows: 1,
-      grid_max_rows: 2,
+      grid_columns: null,     // Automatic width
+      grid_rows: null,        // Automatic height
     };
   }
 
   getLayoutOptions() {
-    return OoklaSpeedtestCompact.getLayoutOptions();
+    return {
+      grid_columns: null,     // Automatic width
+      grid_rows: null,        // Automatic height
+    };
   }
 
   updateCard() {
@@ -95,6 +104,16 @@ class OoklaSpeedtestCompact extends HTMLElement {
     const state = this._hass.states[entityId];
     return state ? parseFloat(state.state) || null : null;
   }
+  
+  _showMoreInfo(entityId) {
+    if (!entityId) return;
+    const event = new CustomEvent('hass-more-info', {
+      bubbles: true,
+      composed: true,
+      detail: { entityId }
+    });
+    this.dispatchEvent(event);
+  }
 
   _runTest() {
     if (!this._hass) return;
@@ -112,6 +131,8 @@ class OoklaSpeedtestCompact extends HTMLElement {
   }
 
   render() {
+    const labels = this._config.labels || { download: 'Download', upload: 'Upload', ping: 'Ping' };
+    
     this.innerHTML = `
       <style>
         :host {
@@ -144,11 +165,14 @@ class OoklaSpeedtestCompact extends HTMLElement {
           width: 100%;
           height: 100%;
           min-height: 50px;
+          max-height: 80px;
           gap: 8px; /* Reduced gap */
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           cursor: pointer;
           position: relative;
           overflow: hidden;
+          /* Ensure proper sizing in sections view */
+          flex: 1;
         }
 
         .card::before {
@@ -206,6 +230,12 @@ class OoklaSpeedtestCompact extends HTMLElement {
           flex: 1;
           min-width: 0;
           overflow: hidden;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+        
+        .stat:hover {
+          opacity: 0.8;
         }
 
         .stat-icon {
@@ -286,17 +316,17 @@ class OoklaSpeedtestCompact extends HTMLElement {
         <button class="action-button">GO</button>
         <div class="stats-container">
           <div class="stats">
-            <div class="stat stat-dl">
+            <div class="stat stat-dl" title="${labels.download}">
               <span class="stat-icon">⬇</span>
               <span class="stat-value dl-value">--</span>
               <span class="stat-unit">Mbps</span>
             </div>
-            <div class="stat stat-ul">
+            <div class="stat stat-ul" title="${labels.upload}">
               <span class="stat-icon">⬆</span>
               <span class="stat-value ul-value">--</span>
               <span class="stat-unit">Mbps</span>
             </div>
-            <div class="stat stat-ping">
+            <div class="stat stat-ping" title="${labels.ping}">
               <span class="stat-icon">⏱</span>
               <span class="stat-value ping-value">--</span>
               <span class="stat-unit">ms</span>
@@ -310,6 +340,12 @@ class OoklaSpeedtestCompact extends HTMLElement {
       e.stopPropagation();
       this._runTest();
     });
+    
+    // Interactive elements
+    const e = this._config.entities;
+    this.querySelector('.stat-dl')?.addEventListener('click', (ev) => { ev.stopPropagation(); this._showMoreInfo(e.download); });
+    this.querySelector('.stat-ul')?.addEventListener('click', (ev) => { ev.stopPropagation(); this._showMoreInfo(e.upload); });
+    this.querySelector('.stat-ping')?.addEventListener('click', (ev) => { ev.stopPropagation(); this._showMoreInfo(e.ping); });
   }
 }
 
@@ -341,6 +377,39 @@ class OoklaSpeedtestCompactEditor extends HTMLElement {
 
     const container = document.createElement('div');
     container.style.cssText = "display: flex; flex-direction: column; gap: 12px; padding: 10px;";
+
+    // Labels Section
+    const labelsDiv = document.createElement('div');
+    labelsDiv.style.cssText = "border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; padding: 10px; background: var(--card-background-color, rgba(0,0,0,0.2));";
+    labelsDiv.innerHTML = `<div style="font-weight: 500; margin-bottom: 10px; color: var(--primary-text-color); font-size: 14px;">Labels (Tooltips)</div>`;
+
+    const createLabelInput = (key, label, defaultValue) => {
+      const div = document.createElement('div');
+      div.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;";
+      
+      const lbl = document.createElement('label');
+      lbl.innerText = label;
+      lbl.style.cssText = "font-size: 13px; color: var(--primary-text-color);";
+      div.appendChild(lbl);
+
+      const input = document.createElement('input');
+      input.type = "text";
+      input.value = (this._config.labels && this._config.labels[key]) || defaultValue;
+      input.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #888); background: var(--card-background-color, #fff); color: var(--primary-text-color, #000); width: 100px;";
+      input.addEventListener('change', (e) => {
+        const labels = { ...(this._config.labels || {}) };
+        labels[key] = e.target.value;
+        this.configChanged({ ...this._config, labels });
+      });
+      
+      div.appendChild(input);
+      return div;
+    };
+
+    labelsDiv.appendChild(createLabelInput('download', 'Download', 'Download'));
+    labelsDiv.appendChild(createLabelInput('upload', 'Upload', 'Upload'));
+    labelsDiv.appendChild(createLabelInput('ping', 'Ping', 'Ping'));
+    container.appendChild(labelsDiv);
 
     const createPicker = (key, label) => {
         const div = document.createElement('div');
@@ -382,4 +451,4 @@ window.customCards.push({
   preview: true
 });
 
-console.info("%c OOKLA COMPACT (BUBBLE) %c v2.0.0 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA COMPACT (BUBBLE) %c v1.4.3 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

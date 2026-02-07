@@ -1,8 +1,14 @@
 /**
- * Ookla Speedtest Card - Compact Version
- * Small footprint card perfect for side panels
- * 
- * Version: 1.2.5
+ * Ookla Speedtest Card - Compact Version (Bubble Style)
+ * Minimalist pill-shaped card inspired by Bubble Card design
+ *
+ * Version: 2.0.0 - Redesigned with Bubble Card aesthetic
+ *
+ * Layout Compatibility:
+ * - Masonry: Returns card size for proper column distribution
+ * - Sections: Uses 4 columns x 2 rows grid by default
+ * - Both layouts fully supported with proper height handling
+ * - Mobile-first, minimalist design
  */
 
 class OoklaSpeedtestCompact extends HTMLElement {
@@ -40,17 +46,48 @@ class OoklaSpeedtestCompact extends HTMLElement {
     this.render();
   }
 
+  /**
+   * Card size for Masonry view (1 = 50px)
+   */
+  getCardSize() {
+    return 2; // ~100px height (compact but readable)
+  }
+
+  /**
+   * Layout options for Sections view (Bubble Card style)
+   * Standard Sections view uses a 4-column grid.
+   * Default to half-width (2 columns) for compact look.
+   */
+  static getLayoutOptions() {
+    return {
+      grid_columns: 2,
+      grid_min_columns: 2,
+      grid_max_columns: 4,
+      grid_rows: 1,
+      grid_min_rows: 1,
+      grid_max_rows: 2,
+    };
+  }
+
+  getLayoutOptions() {
+    return OoklaSpeedtestCompact.getLayoutOptions();
+  }
+
   updateCard() {
     if (!this._hass) return;
-    
+
     const e = this._config.entities;
     const dl = this._getState(e.download);
     const ul = this._getState(e.upload);
     const ping = this._getState(e.ping);
 
-    this.querySelector('.dl-value')?.setAttribute('data-value', dl ? Math.round(dl) : '--');
-    this.querySelector('.ul-value')?.setAttribute('data-value', ul ? Math.round(ul) : '--');
-    this.querySelector('.ping-value')?.setAttribute('data-value', ping ? Math.round(ping) : '--');
+    const dlEl = this.querySelector('.dl-value');
+    const ulEl = this.querySelector('.ul-value');
+    const pingEl = this.querySelector('.ping-value');
+
+    if (dlEl) dlEl.textContent = dl ? Math.round(dl) : '--';
+    if (ulEl) ulEl.textContent = ul ? Math.round(ul) : '--';
+    if (pingEl) pingEl.textContent = ping ? Math.round(ping) : '--';
   }
 
   _getState(entityId) {
@@ -60,120 +97,219 @@ class OoklaSpeedtestCompact extends HTMLElement {
   }
 
   _runTest() {
-    this._hass?.callService('ookla_speedtest', 'run_speedtest');
-    const btn = this.querySelector('.go-btn');
+    if (!this._hass) return;
+
+    this._hass.callService('ookla_speedtest', 'run_speedtest');
+    const btn = this.querySelector('.action-button');
     if (btn) {
       btn.classList.add('running');
-      setTimeout(() => btn.classList.remove('running'), 5000);
+      btn.textContent = '...';
+      setTimeout(() => {
+        btn.classList.remove('running');
+        btn.textContent = 'GO';
+      }, 5000);
     }
   }
 
   render() {
     this.innerHTML = `
       <style>
-        :host { display: block; }
+        :host {
+          display: block;
+          width: 100%;
+          height: 100%;
+          box-sizing: border-box;
+          container-type: inline-size;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
         .card {
-          background: rgba(15, 23, 42, 0.6);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border-radius: 16px;
-          padding: 12px 16px;
-          color: #f8fafc;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          background: var(--bubble-main-background-color, var(--ha-card-background, var(--card-background-color, rgba(255, 255, 255, 0.04))));
+          backdrop-filter: blur(50px);
+          -webkit-backdrop-filter: blur(50px);
+          border-radius: var(--bubble-border-radius, 12px);
+          padding: 4px 8px 4px 4px; /* Tighter padding */
+          color: var(--primary-text-color, #f8fafc);
+          font-family: var(--primary-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+          display: flex;
+          flex-direction: row;
+          flex-wrap: nowrap;
+          align-items: center;
+          justify-content: flex-start;
+          border: none;
+          box-shadow: var(--bubble-box-shadow, 0 2px 8px 0 rgba(0, 0, 0, 0.16));
+          width: 100%;
+          height: 100%;
+          min-height: 50px;
+          gap: 8px; /* Reduced gap */
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: pointer;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, rgba(14, 165, 233, 0.05) 0%, rgba(167, 139, 250, 0.05) 100%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+        }
+
+        .card:hover {
+          box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.24);
+          transform: translateY(-1px);
+        }
+
+        .card:hover::before {
+          opacity: 1;
+        }
+
+        .card:active {
+          transform: scale(0.98);
+        }
+
+        .stats-container {
           display: flex;
           flex-direction: row;
           align-items: center;
-          justify-content: space-between;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          direction: ltr;
-        }
-        .info {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
           flex: 1;
-          text-align: left;
+          min-width: 0;
+          overflow: hidden;
         }
-        .title {
-          font-size: 11px;
-          font-weight: 600;
-          color: #94a3b8;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
+
         .stats {
           display: flex;
-          gap: 12px;
-          align-items: baseline;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          gap: 4px;
+          min-width: 0;
+          overflow: hidden;
         }
+
         .stat {
           display: flex;
+          flex-direction: row;
           align-items: baseline;
+          justify-content: center;
           gap: 2px;
+          white-space: nowrap;
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
         }
-        .stat-dl { color: #38bdf8; }
-        .stat-ul { color: #a78bfa; }
-        .stat-ping { color: #fbbf24; }
-        .stat::before {
-          content: attr(data-value);
-          font-weight: 700;
-          color: #f8fafc;
-          font-size: 16px;
-          line-height: 1;
-        }
-        .unit {
+
+        .stat-icon {
           font-size: 10px;
-          font-weight: 500;
           opacity: 0.6;
-          text-transform: lowercase;
+          margin: 0;
         }
-        .go-btn {
-          width: 42px;
-          height: 42px;
+
+        .stat-value {
+          font-size: 13px;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+        }
+
+        .stat-unit {
+          font-size: 9px;
+          font-weight: 500;
+          opacity: 0.5;
+          margin: 0;
+        }
+
+        .stat-dl .stat-value { color: #38bdf8; }
+        .stat-ul .stat-value { color: #a78bfa; }
+        .stat-ping .stat-value { color: #fbbf24; }
+
+        .action-button {
+          width: 38px;
+          height: 38px;
           border-radius: 50%;
-          border: 2px solid rgba(255,255,255,0.1);
           background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
           color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           font-size: 10px;
-          font-weight: 900;
+          font-weight: 800;
           cursor: pointer;
-          box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          flex-shrink: 0;
-          margin-left: 12px;
+          box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          flex: 0 0 auto;
+          border: none;
+          letter-spacing: 0.5px;
+          white-space: nowrap;
+          padding: 0;
         }
-        .go-btn:hover {
-          transform: scale(1.1);
-          box-shadow: 0 6px 14px rgba(14, 165, 233, 0.4);
-          background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+
+        .action-button:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
         }
-        .go-btn.running {
-          animation: pulse 1.5s infinite;
-          background: #10b981;
-          border-color: rgba(255,255,255,0.2);
+
+        .action-button:active {
+          transform: scale(0.95);
         }
-        @keyframes pulse { 
-          0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 
-          70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 
-          100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } 
+
+        .action-button.running {
+          animation: pulse-glow 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.8; }
+        }
+
+        /* Container query responsive adjustments - simplified to prevent wrapping */
+        @container (max-width: 320px) {
+          .stat-icon { display: none; }
+          .stats { gap: 4px; }
+          .stat-value { font-size: 11px; }
+          .stat-unit { font-size: 8px; }
+          .card { padding: 4px 8px; }
         }
       </style>
-      
+
       <div class="card">
-        <div class="info">
-          <div class="title">Internet Speed</div>
+        <button class="action-button">GO</button>
+        <div class="stats-container">
           <div class="stats">
-            <div class="stat stat-dl dl-value" data-value="--"><span class="unit">mbps</span></div>
-            <div class="stat stat-ul ul-value" data-value="--"><span class="unit">mbps</span></div>
-            <div class="stat stat-ping ping-value" data-value="--"><span class="unit">ms</span></div>
+            <div class="stat stat-dl">
+              <span class="stat-icon">⬇</span>
+              <span class="stat-value dl-value">--</span>
+              <span class="stat-unit">Mbps</span>
+            </div>
+            <div class="stat stat-ul">
+              <span class="stat-icon">⬆</span>
+              <span class="stat-value ul-value">--</span>
+              <span class="stat-unit">Mbps</span>
+            </div>
+            <div class="stat stat-ping">
+              <span class="stat-icon">⏱</span>
+              <span class="stat-value ping-value">--</span>
+              <span class="stat-unit">ms</span>
+            </div>
           </div>
         </div>
-        <button class="go-btn">GO</button>
       </div>
     `;
 
-    this.querySelector('.go-btn')?.addEventListener('click', () => this._runTest());
+    this.querySelector('.action-button')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._runTest();
+    });
   }
 }
 
@@ -241,7 +377,9 @@ customElements.define("ookla-speedtest-compact-editor", OoklaSpeedtestCompactEdi
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "ookla-speedtest-compact",
-  name: "Ookla Speedtest - Compact",
-  description: "Compact card for side panels and crowded dashboards",
+  name: "Ookla Speedtest - Compact (Bubble Style)",
+  description: "Minimalist pill-shaped card inspired by Bubble Card design - perfect for side panels",
   preview: true
 });
+
+console.info("%c OOKLA COMPACT (BUBBLE) %c v2.0.0 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

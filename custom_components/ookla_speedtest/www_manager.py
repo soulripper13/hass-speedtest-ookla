@@ -24,7 +24,6 @@ CARDS = [
 ]
 
 WWW_SOURCE_DIR = Path(__file__).parent / "www"
-WWW_TARGET_DIR = Path("/config/www/ookla_speedtest")
 
 
 async def async_setup_cards(hass: HomeAssistant) -> bool:
@@ -33,14 +32,23 @@ async def async_setup_cards(hass: HomeAssistant) -> bool:
     This ensures cards are accessible at /local/ookla_speedtest/
     """
     try:
+        # Get path to www folder
+        www_dir = Path(hass.config.path("www"))
+        target_dir = www_dir / "ookla_speedtest"
+        
+        # Create www directory if it doesn't exist
+        if not www_dir.exists():
+            _LOGGER.info("Creating www directory")
+            await hass.async_add_executor_job(www_dir.mkdir)
+            
         # Create target directory
-        if not WWW_TARGET_DIR.exists():
-             await hass.async_add_executor_job(WWW_TARGET_DIR.mkdir, True)
+        if not target_dir.exists():
+             await hass.async_add_executor_job(target_dir.mkdir)
         
         copied_count = 0
         for card in CARDS:
             source = WWW_SOURCE_DIR / card
-            target = WWW_TARGET_DIR / card
+            target = target_dir / card
             
             # Copy if source exists and (target missing or source newer)
             if source.exists():

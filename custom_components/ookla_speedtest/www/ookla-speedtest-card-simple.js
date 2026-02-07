@@ -1,6 +1,13 @@
 /**
  * Ookla Speedtest Card - Simplified Version
  * Basic working version to test setup
+ *
+ * Version: 1.2.0 - Fixed masonry and sections layout compatibility
+ *
+ * Layout Compatibility:
+ * - Masonry: Returns card size for proper column distribution
+ * - Sections: Uses 4 columns x 5 rows grid by default
+ * - Both layouts fully supported with proper height handling
  */
 
 class OoklaSpeedtestCardSimple extends HTMLElement {
@@ -34,6 +41,32 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
     this.update();
   }
 
+  /**
+   * Card size for Masonry view (1 = 50px)
+   */
+  getCardSize() {
+    return 5; // ~250px height
+  }
+
+  /**
+   * Layout options for Sections view
+   * Sections use a 12-column grid system
+   */
+  static getLayoutOptions() {
+    return {
+      grid_columns: 4,        // 1/3 width (33% of 12 columns)
+      grid_min_columns: 4,
+      grid_max_columns: 6,
+      grid_rows: 2,
+      grid_min_rows: 2,
+      grid_max_rows: 3,
+    };
+  }
+
+  getLayoutOptions() {
+    return OoklaSpeedtestCardSimple.getLayoutOptions();
+  }
+
   update() {
     if (!this._hass) return;
     
@@ -53,24 +86,46 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
   render() {
     this.innerHTML = `
       <style>
-        .card { 
-          background: rgba(15, 23, 42, 0.6); 
+        :host {
+          display: block;
+          width: 100%;
+          box-sizing: border-box;
+          container-type: inline-size;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        .card {
+          background: rgba(15, 23, 42, 0.6);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          color: white; 
-          padding: 20px; 
+          color: white;
+          padding: 16px;
           border-radius: 24px;
-          font-family: sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           border: 1px solid rgba(255, 255, 255, 0.08);
-          direction: ltr;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
         .title { font-size: 18px; margin-bottom: 10px; font-weight: 700; }
-        .row { display: flex; justify-content: space-between; margin: 10px 0; }
+        .row { 
+          display: flex; 
+          justify-content: space-between; 
+          margin: 8px 0;
+          gap: 10px;
+        }
         .btn { 
           background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
           color: white; 
           border: none; 
-          padding: 15px 30px; 
+          padding: 12px 30px; 
           border-radius: 30px;
           font-size: 16px;
           font-weight: 700;
@@ -144,4 +199,4 @@ window.customCards.push({
   description: "Simplified test version"
 });
 
-console.log("✅ Ookla Speedtest Simple Card loaded");
+console.log("✅ Ookla Speedtest Simple Card v1.2.0 loaded");

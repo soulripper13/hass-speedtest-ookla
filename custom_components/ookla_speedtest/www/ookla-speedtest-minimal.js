@@ -1,8 +1,13 @@
 /**
  * Ookla Speedtest Card - Minimal Version
  * A clean, simple speedtest card with large typography
- * 
- * Version: 1.1.4
+ *
+ * Version: 1.3.0 - Fixed masonry and sections layout compatibility
+ *
+ * Layout Compatibility:
+ * - Masonry: Returns card size for proper column distribution
+ * - Sections: Uses 4 columns x 6 rows grid by default
+ * - Both layouts fully supported with proper height handling
  */
 
 class OoklaSpeedtestMinimal extends HTMLElement {
@@ -39,6 +44,32 @@ class OoklaSpeedtestMinimal extends HTMLElement {
 
   connectedCallback() {
     this.render();
+  }
+
+  /**
+   * Card size for Masonry view (1 = 50px)
+   */
+  getCardSize() {
+    return 6; // ~300px height
+  }
+
+  /**
+   * Layout options for Sections view
+   * Sections use a 12-column grid system
+   */
+  static getLayoutOptions() {
+    return {
+      grid_columns: 4,        // 1/3 width (33% of 12 columns)
+      grid_min_columns: 4,
+      grid_max_columns: 6,
+      grid_rows: 2,
+      grid_min_rows: 2,
+      grid_max_rows: 3,
+    };
+  }
+
+  getLayoutOptions() {
+    return OoklaSpeedtestMinimal.getLayoutOptions();
   }
 
   updateCard() {
@@ -89,17 +120,33 @@ class OoklaSpeedtestMinimal extends HTMLElement {
   render() {
     this.innerHTML = `
       <style>
-        :host { display: block; }
+        :host {
+          display: block;
+          width: 100%;
+          box-sizing: border-box;
+          container-type: inline-size;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
         .card {
           background: rgba(15, 23, 42, 0.6);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-radius: 24px;
-          padding: 24px;
+          padding: 20px;
           color: #f8fafc;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           border: 1px solid rgba(255, 255, 255, 0.08);
-          direction: ltr;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
         .isp-text {
           font-size: 11px;
@@ -111,8 +158,8 @@ class OoklaSpeedtestMinimal extends HTMLElement {
         }
         .speeds {
           display: flex;
-          gap: 24px;
-          margin-bottom: 24px;
+          gap: 20px;
+          margin-bottom: 20px;
         }
         .speed-block {
           flex: 1;
@@ -129,7 +176,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
           font-weight: 600;
         }
         .speed-value {
-          font-size: 42px;
+          font-size: 36px;
           font-weight: 800;
           line-height: 1;
           transition: color 0.3s;
@@ -155,7 +202,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
         }
         .test-btn {
           width: 100%;
-          padding: 16px;
+          padding: 14px;
           border: none;
           border-radius: 16px;
           background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);

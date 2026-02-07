@@ -1,8 +1,13 @@
 /**
  * Ookla Speedtest Card - Dashboard Version
- * Full-featured dashboard card with mini charts and all metrics
- * 
- * Version: 1.2.5
+ * Full-featured dashboard card with configurable gauges and charts
+ *
+ * Version: 2.0.0 - Added configurable gauges and max speed settings
+ *
+ * Layout Compatibility:
+ * - Masonry: Returns card size for proper column distribution
+ * - Sections: Uses 6 columns x 12 rows grid by default
+ * - Both layouts fully supported with proper height handling
  */
 
 class OoklaSpeedtestDashboard extends HTMLElement {
@@ -32,74 +37,211 @@ class OoklaSpeedtestDashboard extends HTMLElement {
         last_test: "sensor.ookla_speedtest_last_test",
         result_url: "sensor.ookla_speedtest_result_url",
         // Latency Metrics (Optional)
-        ping_min: "sensor.ookla_speedtest_ping_low",
-        ping_max: "sensor.ookla_speedtest_ping_high",
-        dl_ping: "sensor.ookla_speedtest_ping_during_download",
-        dl_ping_min: "sensor.ookla_speedtest_ping_low_during_download",
-        dl_ping_max: "sensor.ookla_speedtest_ping_high_during_download",
-        ul_ping: "sensor.ookla_speedtest_ping_during_upload",
-        ul_ping_min: "sensor.ookla_speedtest_ping_low_during_upload",
-        ul_ping_max: "sensor.ookla_speedtest_ping_high_during_upload",
+        ping_min: "sensor.ookla_speedtest_ping_min",
+        ping_max: "sensor.ookla_speedtest_ping_max",
+        dl_ping: "sensor.ookla_speedtest_download_ping",
+        dl_ping_min: "sensor.ookla_speedtest_download_ping_min",
+        dl_ping_max: "sensor.ookla_speedtest_download_ping_max",
+        ul_ping: "sensor.ookla_speedtest_upload_ping",
+        ul_ping_min: "sensor.ookla_speedtest_upload_ping_min",
+        ul_ping_max: "sensor.ookla_speedtest_upload_ping_max",
         // Stability & Compliance (Optional)
-        dl_compliance: "sensor.ookla_speedtest_download_percent",
-        ul_compliance: "sensor.ookla_speedtest_upload_percent",
-        dl_jitter: "sensor.ookla_speedtest_jitter_during_download",
-        ul_jitter: "sensor.ookla_speedtest_jitter_during_upload"
+        dl_compliance: "sensor.ookla_speedtest_download_plan_compliance",
+        ul_compliance: "sensor.ookla_speedtest_upload_plan_compliance",
+        dl_jitter: "sensor.ookla_speedtest_download_jitter",
+        ul_jitter: "sensor.ookla_speedtest_upload_jitter"
       },
+      show_gauges: true,
       show_charts: true,
-      chart_points: 20
+      history_hours: 168,  // 7 days (24 * 7)
+      max_download: 1000,
+      max_upload: 500
     };
   }
 
   setConfig(config) {
-    this._config = { ...OoklaSpeedtestDashboard.getStubConfig(), ...config };
-    // Merge entities individually to ensure defaults are preserved if keys are missing
-    this._config.entities = { ...OoklaSpeedtestDashboard.getStubConfig().entities, ...config.entities };
+    // Merge config but don't force stub defaults for entities
+    const stubConfig = OoklaSpeedtestDashboard.getStubConfig();
+    this._config = { ...stubConfig, ...config };
+
+    // Only use stub entities if user hasn't provided any entities at all
+    if (!config.entities) {
+      this._config.entities = stubConfig.entities;
+    } else {
+      // Use only the entities the user explicitly configured
+      this._config.entities = config.entities;
+    }
   }
 
   set hass(hass) {
     const oldHass = this._hass;
     this._hass = hass;
-    
+
     if (hass && oldHass !== hass) {
-      this._updateHistory();
       this.updateCard();
+      // Fetch history data periodically (every 5 minutes)
+      if (!this._historyUpdateInterval) {
+        this._fetchHistory();
+        this._historyUpdateInterval = setInterval(() => this._fetchHistory(), 5 * 60 * 1000);
+      }
     }
   }
 
   connectedCallback() {
     this.render();
+    // Fetch history immediately if hass is already available
+    if (this._hass && this._config.show_charts) {
+      this._fetchHistory();
+    }
   }
 
-  _updateHistory() {
+  /**
+   * Card size for Masonry view (1 = 50px)
+   * Adjust size based on enabled features
+   */
+  getCardSize() {
+    let size = 8; // Base size for metrics and footer
+    if (this._config.show_gauges) size += 3; // Add space for gauges
+    if (this._config.show_charts) size += 4; // Add space for charts
+    return size;
+  }
+
+  /**
+   * Layout options for Sections view
+   * Sections use a 12-column grid system
+   */
+  static getLayoutOptions() {
+    return {
+      grid_columns: 6,        // Half width (50% of 12 columns)
+      grid_min_columns: 6,
+      grid_max_columns: 12,
+      grid_rows: 7,
+      grid_min_rows: 6,
+      grid_max_rows: 9,
+    };
+  }
+
+  getLayoutOptions() {
+    // Calculate dynamic rows based on enabled features
+    let rows = 6; // Base: header + metrics + optional metrics + footer
+    if (this._config.show_gauges) rows += 1.5;
+    if (this._config.show_charts) rows += 1.5;
+
+    return {
+      grid_columns: 6,
+      grid_min_columns: 6,
+      grid_max_columns: 12,
+      grid_rows: Math.min(Math.ceil(rows), 9),
+      grid_min_rows: 6,
+      grid_max_rows: 9,
+    };
+  }
+
+  async _fetchHistory() {
+    if (!this._hass || !this._config.show_charts) return;
+
     const e = this._config.entities;
-    const download = parseFloat(this._getState(e.download)) || 0;
-    const upload = parseFloat(this._getState(e.upload)) || 0;
-    const ping = parseFloat(this._getState(e.ping)) || 0;
+    const entities = [e.download, e.upload, e.ping].filter(id => id);
 
-    this._history.download.push(download);
-    this._history.upload.push(upload);
-    this._history.ping.push(ping);
+    if (entities.length === 0) return;
 
-    const maxPoints = this._config.chart_points || 20;
-    Object.keys(this._history).forEach(key => {
-      if (this._history[key].length > maxPoints) {
-        this._history[key] = this._history[key].slice(-maxPoints);
+    const hours = this._config.history_hours || 168; // Default 7 days
+    const endTime = new Date();
+    const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
+
+    try {
+      const history = await this._hass.callWS({
+        type: 'history/history_during_period',
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        entity_ids: entities,
+        minimal_response: true,
+        significant_changes_only: false
+      });
+
+      console.log('History response:', history);
+
+      // Process history data
+      this._history = { download: [], upload: [], ping: [] };
+
+      if (history) {
+        // History is an object with entity_id as keys
+        entities.forEach((entityId) => {
+          const entityHistory = history[entityId];  // Access by entity ID key
+          let key = null;
+
+          if (entityId === e.download) key = 'download';
+          else if (entityId === e.upload) key = 'upload';
+          else if (entityId === e.ping) key = 'ping';
+
+          if (key && entityHistory && Array.isArray(entityHistory)) {
+            entityHistory.forEach(state => {
+              // Handle both minimal and full response formats
+              const value = parseFloat(state.s || state.state);
+              if (!isNaN(value) && value >= 0) {
+                this._history[key].push(value);
+              }
+            });
+          }
+        });
+
+        console.log('Processed history:', this._history);
+
+        // Sample data if too many points (keep max 100 points for smooth rendering)
+        Object.keys(this._history).forEach(key => {
+          const data = this._history[key];
+          if (data.length > 100) {
+            const step = Math.ceil(data.length / 100);
+            this._history[key] = data.filter((_, i) => i % step === 0);
+          }
+        });
+
+        console.log('Sampled history:', this._history);
       }
-    });
+
+      if (this._config.show_charts) {
+        this._drawCharts();
+      }
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+      // Fallback to current values if history fetch fails
+      this._history = {
+        download: [parseFloat(this._getState(e.download)) || 0],
+        upload: [parseFloat(this._getState(e.upload)) || 0],
+        ping: [parseFloat(this._getState(e.ping)) || 0]
+      };
+      if (this._config.show_charts) {
+        this._drawCharts();
+      }
+    }
+  }
+
+  disconnectedCallback() {
+    if (this._historyUpdateInterval) {
+      clearInterval(this._historyUpdateInterval);
+      this._historyUpdateInterval = null;
+    }
   }
 
   updateCard() {
     if (!this._hass) return;
-    
+
     const e = this._config.entities;
-    
+
     // Main Metrics
     this._updateMetricValue('.metric-dl', e.download, ' Mbps', true);
     this._updateMetricValue('.metric-ul', e.upload, ' Mbps', true);
     this._updateMetricValue('.metric-ping', e.ping, ' ms');
     this._updateMetricValue('.metric-jitter', e.jitter, ' ms');
-    
+
+    // Update gauges if enabled
+    if (this._config.show_gauges) {
+      const download = parseFloat(this._getState(e.download)) || 0;
+      const upload = parseFloat(this._getState(e.upload)) || 0;
+      this._updateGauge('download', download, this._config.max_download);
+      this._updateGauge('upload', upload, this._config.max_upload);
+    }
+
     // Grade with color
     const gradeVal = this._getState(e.grade);
     const gradeEl = this.querySelector('.metric-grade .value');
@@ -132,7 +274,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
     // ISP and server
     this.querySelector('.isp-name')?.setAttribute('data-text', this._getState(e.isp) || 'Unknown ISP');
     this.querySelector('.server-name')?.setAttribute('data-text', this._getState(e.server) || 'Unknown Server');
-    
+
     // Last test
     const lastTestEl = this.querySelector('.last-test');
     if (lastTestEl) lastTestEl.textContent = this._formatTime(this._getState(e.last_test));
@@ -149,7 +291,9 @@ class OoklaSpeedtestDashboard extends HTMLElement {
       }
     }
 
-    this._drawCharts();
+    if (this._config.show_charts) {
+      this._drawCharts();
+    }
   }
 
   _updateMetricValue(selector, entityId, suffix = '', round = false) {
@@ -164,20 +308,57 @@ class OoklaSpeedtestDashboard extends HTMLElement {
     }
   }
 
+  _updateGauge(type, value, max) {
+    const gauge = this.querySelector(`.gauge-${type} .gauge-fill`);
+    const valueEl = this.querySelector(`.gauge-${type} .gauge-value`);
+
+    if (!gauge || !valueEl) return;
+
+    const numValue = parseFloat(value) || 0;
+    const percentage = Math.min((numValue / max) * 100, 100);
+
+    // Calculate stroke dashoffset for SVG circle (270 degrees)
+    const maxArc = 424;
+    const offset = maxArc * (1 - percentage / 100);
+
+    gauge.style.strokeDashoffset = offset;
+
+    // Color based on percentage
+    let color = '#ef4444'; // red
+    if (percentage >= 50) color = '#22d3ee'; // cyan
+    if (percentage >= 80) color = '#22c55e'; // green
+
+    gauge.style.stroke = color;
+    valueEl.textContent = Math.round(numValue);
+    valueEl.style.color = color;
+  }
+
   _drawCharts() {
+    if (!this._config.show_charts) return;
+
     ['download', 'upload', 'ping'].forEach(type => {
       const svg = this.querySelector(`.chart-${type} svg`);
-      if (!svg || this._history[type].length < 2) return;
+      if (!svg) return;
 
-      const data = this._history[type];
-      const max = Math.max(...data, 1);
-      const min = Math.min(...data);
+      const data = this._history[type] || [];
+
+      // Need at least 1 data point to draw
+      if (data.length === 0) {
+        svg.innerHTML = '<text x="50" y="20" text-anchor="middle" fill="#64748b" font-size="8">No data</text>';
+        return;
+      }
+
+      // If only 1 point, duplicate it to draw a line
+      const chartData = data.length === 1 ? [data[0], data[0]] : data;
+
+      const max = Math.max(...chartData, 1);
+      const min = Math.min(...chartData);
       const range = max - min || 1;
       const width = 100;
       const height = 40;
-      
-      const points = data.map((val, i) => {
-        const x = (i / (data.length - 1)) * width;
+
+      const points = chartData.map((val, i) => {
+        const x = (i / (chartData.length - 1)) * width;
         const y = height - ((val - min) / range) * height;
         return [x, y];
       });
@@ -230,77 +411,304 @@ class OoklaSpeedtestDashboard extends HTMLElement {
     const e = this._config.entities;
     this.innerHTML = `
       <style>
-        :host { display: block; }
+        :host {
+          display: block;
+          width: 100%;
+          box-sizing: border-box;
+          container-type: inline-size;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
         .card {
           background: rgba(15, 23, 42, 0.6);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-radius: 24px;
-          padding: 20px;
+          padding: 12px;
+          padding-left: max(12px, env(safe-area-inset-left));
+          padding-right: max(12px, env(safe-area-inset-right));
           border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
           color: #f8fafc;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          direction: ltr;
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: auto;
         }
-        .header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .header { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
         .isp-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #f8fafc; }
         .isp-name::before { content: attr(data-text); }
         .server-name { font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
         .server-name::before { content: attr(data-text); }
         
-        .metrics-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
+        .metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 8px;
+          margin-bottom: 10px;
+          flex-shrink: 0;
+        }
         .metric {
           background: rgba(255,255,255,0.03);
           border-radius: 12px;
-          padding: 10px 5px;
+          padding: 8px 4px;
           text-align: center;
           border: 1px solid rgba(255,255,255,0.02);
           cursor: pointer;
           transition: all 0.2s;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
         .metric:hover { transform: translateY(-2px); background: rgba(255,255,255,0.05); }
+        .metric:active { transform: translateY(0); background: rgba(255,255,255,0.07); }
         .metric .label { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600; }
         .metric .value { font-size: 16px; font-weight: 700; line-height: 1; }
         .metric .value::before { content: attr(data-val); }
-        
-        .optional-grid { 
-          display: grid; 
-          grid-template-columns: repeat(4, 1fr); 
-          gap: 8px; 
-          margin-bottom: 20px;
+
+        .optional-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 6px;
+          margin-bottom: 10px;
           border-top: 1px solid rgba(255,255,255,0.05);
-          padding-top: 15px;
+          padding-top: 10px;
+          flex-shrink: 0;
         }
-        .optional-grid .metric { padding: 8px 4px; }
-        .optional-grid .metric .value { font-size: 13px; }
+        .optional-grid .metric { padding: 6px 4px; }
+        .optional-grid .metric .value { font-size: 12px; }
 
         .metric-dl .value { color: #38bdf8; }
         .metric-ul .value { color: #a78bfa; }
         .metric-ping .value { color: #fbbf24; }
         .metric-jitter .value { color: #f472b6; }
+
+        /* Gauge Styles */
+        .gauges-container {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          margin: 10px 0;
+          flex-shrink: 0;
+        }
+
+        .gauge {
+          position: relative;
+          width: 110px;
+          height: 110px;
+          flex-shrink: 0;
+        }
+
+        .gauge-svg {
+          transform: rotate(135deg);
+          width: 100%;
+          height: 100%;
+        }
+
+        .gauge-bg {
+          fill: none;
+          stroke: rgba(255,255,255,0.05);
+          stroke-width: 10;
+          stroke-linecap: round;
+          stroke-dasharray: 424 566;
+          stroke-dashoffset: 0;
+        }
+
+        .gauge-fill {
+          fill: none;
+          stroke-width: 10;
+          stroke-linecap: round;
+          stroke-dasharray: 424 566;
+          stroke-dashoffset: 424;
+          transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
+          filter: drop-shadow(0 0 4px currentColor);
+        }
+
+        .gauge-content {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .gauge-label {
+          font-size: 9px;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 4px;
+          font-weight: 600;
+        }
+
+        .gauge-value {
+          font-size: 24px;
+          font-weight: 800;
+          color: #fff;
+          line-height: 1;
+          letter-spacing: -0.5px;
+          text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .gauge-unit {
+          font-size: 9px;
+          color: #64748b;
+          margin-top: 2px;
+          font-weight: 500;
+        }
+
+        .charts-section {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+          margin-bottom: 10px;
+          flex-shrink: 0;
+          min-height: 100px;
+        }
+        .chart-box {
+          background: rgba(15, 23, 42, 0.4);
+          border-radius: 16px;
+          padding: 8px;
+          border: 1px solid rgba(255,255,255,0.03);
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          min-height: 90px;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+          transition: all 0.2s;
+        }
+        .chart-box:hover { background: rgba(15, 23, 42, 0.5); }
+        .chart-box:active { transform: scale(0.98); background: rgba(15, 23, 42, 0.6); }
+        .chart-title { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; font-weight: 600; }
+        .chart-box svg { width: 100%; height: 70px; overflow: visible; }
         
-        .charts-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-        .chart-box { background: rgba(15, 23, 42, 0.4); border-radius: 16px; padding: 12px; border: 1px solid rgba(255,255,255,0.03); cursor: pointer; }
-        .chart-title { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; font-weight: 600; }
-        .chart-box svg { width: 100%; height: 40px; overflow: visible; }
-        
-        .footer { display: flex; align-items: center; justify-content: space-between; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 10px;
+          border-top: 1px solid rgba(255,255,255,0.05);
+          flex-shrink: 0;
+        }
         .last-test { font-size: 11px; color: #64748b; }
         .run-btn {
           padding: 6px 15px; border: none; border-radius: 20px;
           background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
           color: white; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+          min-height: 32px;
+          min-width: 80px;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
+        .run-btn:active { transform: scale(0.95); }
         .run-btn.running { background: #10b981; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-        .result-link { color: #38bdf8; text-decoration: none; font-size: 11px; }
-        
-        @media (max-width: 600px) {
-          .metrics-grid { grid-template-columns: repeat(3, 1fr); }
-          .optional-grid { grid-template-columns: repeat(2, 1fr); }
-          .charts-section { grid-template-columns: 1fr; }
+        .result-link {
+          color: #38bdf8; text-decoration: none; font-size: 11px;
+          min-height: 32px;
+          display: inline-flex;
+          align-items: center;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
-      </style>
+        .result-link:active { transform: scale(0.95); }
+
+        /* Container query responsive adjustments */
+        @container (max-width: 500px) {
+          .card { padding: 14px; }
+          .isp-name { font-size: 16px; }
+          .server-name { font-size: 11px; }
+          .metrics-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+          .metric .label { font-size: 8px; }
+          .metric .value { font-size: 14px; }
+          .optional-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+          .optional-grid .metric { padding: 6px 3px; }
+          .optional-grid .metric .value { font-size: 11px; }
+          .optional-grid .metric .label { font-size: 7px; }
+          .gauge { width: 110px; height: 110px; }
+          .gauge-value { font-size: 22px; }
+          .gauge-label { font-size: 8px; }
+          .gauge-unit { font-size: 8px; }
+          .charts-section { grid-template-columns: 1fr; gap: 8px; }
+          .chart-title { font-size: 9px; }
+        }
+
+        @container (max-width: 400px) {
+          .card { padding: 12px; border-radius: 20px; }
+          .header { margin-bottom: 10px; }
+          .isp-name { font-size: 15px; }
+          .server-name { font-size: 10px; }
+          .metrics-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+          .metric { padding: 8px 4px; border-radius: 10px; }
+          .metric .label { font-size: 7px; letter-spacing: 0.3px; }
+          .metric .value { font-size: 13px; }
+          .optional-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; padding-top: 10px; margin-bottom: 10px; }
+          .optional-grid .metric { padding: 5px 3px; }
+          .optional-grid .metric .value { font-size: 10px; }
+          .optional-grid .metric .label { font-size: 7px; }
+          .gauges-container { gap: 10px; margin: 12px 0; }
+          .gauge { width: 100px; height: 100px; }
+          .gauge-value { font-size: 20px; }
+          .gauge-label { font-size: 7px; letter-spacing: 0.5px; }
+          .gauge-unit { font-size: 7px; }
+          .gauge-bg, .gauge-fill { stroke-width: 9; }
+          .charts-section { margin-bottom: 10px; }
+          .chart-box { padding: 8px; border-radius: 12px; }
+          .chart-title { font-size: 8px; margin-bottom: 6px; }
+          .footer { padding-top: 10px; flex-direction: column; gap: 8px; align-items: flex-start; }
+          .last-test { font-size: 10px; }
+          .run-btn { font-size: 11px; padding: 5px 12px; align-self: stretch; text-align: center; }
+          .result-link { font-size: 10px; padding: 5px 10px; }
+        }
+
+        @container (max-width: 320px) {
+          .card { padding: 10px; border-radius: 16px; }
+          .isp-name { font-size: 14px; }
+          .server-name { font-size: 9px; }
+          .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+          .metric { padding: 6px 3px; }
+          .metric .label { font-size: 7px; }
+          .metric .value { font-size: 12px; }
+          .optional-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+          .optional-grid .metric { padding: 4px 2px; }
+          .optional-grid .metric .value { font-size: 9px; }
+          .optional-grid .metric .label { font-size: 6px; }
+          .gauges-container { flex-direction: column; gap: 8px; margin: 10px 0; }
+          .gauge { width: 90px; height: 90px; }
+          .gauge-value { font-size: 18px; }
+          .gauge-label { font-size: 7px; }
+          .gauge-unit { font-size: 7px; }
+          .gauge-bg, .gauge-fill { stroke-width: 8; }
+          .chart-box { padding: 6px; }
+          .chart-title { font-size: 7px; }
+          .footer { gap: 6px; }
+          .last-test { font-size: 9px; }
+          .run-btn { font-size: 10px; padding: 4px 10px; border-radius: 16px; }
+        }
+
+        @container (max-width: 280px) {
+          .card { padding: 8px; }
+          .header { margin-bottom: 8px; }
+          .metrics-grid { gap: 4px; margin-bottom: 8px; }
+          .optional-grid { gap: 3px; margin-bottom: 8px; padding-top: 8px; }
+          .gauges-container { margin: 8px 0; }
+          .gauge { width: 80px; height: 80px; }
+          .gauge-value { font-size: 16px; }
+          .gauge-label { font-size: 6px; }
+          .gauge-unit { font-size: 6px; }
+          .charts-section { gap: 6px; margin-bottom: 8px; }
+          .footer { padding-top: 8px; }
+        }
+</style>
       
       <div class="card">
         <div class="header">
@@ -329,12 +737,54 @@ class OoklaSpeedtestDashboard extends HTMLElement {
           <div class="metric metric-dl-compliance" id="m-dlc"><div class="label">DL Plan</div><div class="value"></div></div>
           <div class="metric metric-ul-compliance" id="m-ulc"><div class="label">UL Plan</div><div class="value"></div></div>
         </div>
-        
+
+        ${this._config.show_gauges ? `
+        <div class="gauges-container">
+          <div class="gauge gauge-download">
+            <svg class="gauge-svg" viewBox="0 0 200 200">
+              <defs>
+                <linearGradient id="grad-download-dash" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <circle class="gauge-bg" cx="100" cy="100" r="90"></circle>
+              <circle class="gauge-fill" cx="100" cy="100" r="90" stroke="url(#grad-download-dash)"></circle>
+            </svg>
+            <div class="gauge-content">
+              <div class="gauge-label">Download</div>
+              <div class="gauge-value">0</div>
+              <div class="gauge-unit">Mbps</div>
+            </div>
+          </div>
+
+          <div class="gauge gauge-upload">
+            <svg class="gauge-svg" viewBox="0 0 200 200">
+              <defs>
+                <linearGradient id="grad-upload-dash" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <circle class="gauge-bg" cx="100" cy="100" r="90"></circle>
+              <circle class="gauge-fill" cx="100" cy="100" r="90" stroke="url(#grad-upload-dash)"></circle>
+            </svg>
+            <div class="gauge-content">
+              <div class="gauge-label">Upload</div>
+              <div class="gauge-value">0</div>
+              <div class="gauge-unit">Mbps</div>
+            </div>
+          </div>
+        </div>
+        ` : ''}
+
+        ${this._config.show_charts ? `
         <div class="charts-section">
           <div class="chart-box chart-download" id="c-dl"><div class="chart-title">Download</div><svg viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
           <div class="chart-box chart-upload" id="c-ul"><div class="chart-title">Upload</div><svg viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
           <div class="chart-box chart-ping" id="c-ping"><div class="chart-title">Ping</div><svg viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
         </div>
+        ` : ''}
         
         <div class="footer">
           <span class="last-test">Never tested</span>
@@ -396,17 +846,68 @@ class OoklaSpeedtestDashboardEditor extends HTMLElement {
     const genDiv = document.createElement('div');
     genDiv.style.cssText = "border: 1px solid var(--divider-color, #444); border-radius: 8px; padding: 10px; background: var(--card-background-color, #222);";
     genDiv.innerHTML = `<div style="font-weight: bold; margin-bottom: 10px; color: var(--primary-color, #0ea5e9); font-size: 13px; text-transform: uppercase;">General Settings</div>`;
-    
-    const chartOption = document.createElement('div');
-    chartOption.style.cssText = "display: flex; align-items: center; justify-content: space-between;";
-    chartOption.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">Chart Points</label>`;
-    const chartInput = document.createElement('input');
-    chartInput.type = "number";
-    chartInput.value = this._config.chart_points || 20;
-    chartInput.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #444); background: var(--card-background-color, #111); color: var(--primary-text-color, #fff); width: 60px;";
-    chartInput.addEventListener('change', (e) => this.configChanged({ ...this._config, chart_points: Number(e.target.value) }));
-    chartOption.appendChild(chartInput);
-    genDiv.appendChild(chartOption);
+
+    // Show Gauges Toggle
+    const gaugesToggle = document.createElement('div');
+    gaugesToggle.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;";
+    gaugesToggle.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">Show Gauges</label>`;
+    const gaugesCheckbox = document.createElement('input');
+    gaugesCheckbox.type = "checkbox";
+    gaugesCheckbox.checked = this._config.show_gauges !== false;
+    gaugesCheckbox.style.cssText = "width: 20px; height: 20px; cursor: pointer;";
+    gaugesCheckbox.addEventListener('change', (e) => this.configChanged({ ...this._config, show_gauges: e.target.checked }));
+    gaugesToggle.appendChild(gaugesCheckbox);
+    genDiv.appendChild(gaugesToggle);
+
+    // Max Download
+    const maxDlOption = document.createElement('div');
+    maxDlOption.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;";
+    maxDlOption.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">Max Download (Mbps)</label>`;
+    const maxDlInput = document.createElement('input');
+    maxDlInput.type = "number";
+    maxDlInput.value = this._config.max_download || 1000;
+    maxDlInput.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #444); background: var(--card-background-color, #111); color: var(--primary-text-color, #fff); width: 80px;";
+    maxDlInput.addEventListener('change', (e) => this.configChanged({ ...this._config, max_download: Number(e.target.value) }));
+    maxDlOption.appendChild(maxDlInput);
+    genDiv.appendChild(maxDlOption);
+
+    // Max Upload
+    const maxUlOption = document.createElement('div');
+    maxUlOption.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;";
+    maxUlOption.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">Max Upload (Mbps)</label>`;
+    const maxUlInput = document.createElement('input');
+    maxUlInput.type = "number";
+    maxUlInput.value = this._config.max_upload || 500;
+    maxUlInput.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #444); background: var(--card-background-color, #111); color: var(--primary-text-color, #fff); width: 80px;";
+    maxUlInput.addEventListener('change', (e) => this.configChanged({ ...this._config, max_upload: Number(e.target.value) }));
+    maxUlOption.appendChild(maxUlInput);
+    genDiv.appendChild(maxUlOption);
+
+    // Show Charts Toggle
+    const chartsToggle = document.createElement('div');
+    chartsToggle.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;";
+    chartsToggle.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">Show Charts</label>`;
+    const chartsCheckbox = document.createElement('input');
+    chartsCheckbox.type = "checkbox";
+    chartsCheckbox.checked = this._config.show_charts !== false;
+    chartsCheckbox.style.cssText = "width: 20px; height: 20px; cursor: pointer;";
+    chartsCheckbox.addEventListener('change', (e) => this.configChanged({ ...this._config, show_charts: e.target.checked }));
+    chartsToggle.appendChild(chartsCheckbox);
+    genDiv.appendChild(chartsToggle);
+
+    const historyOption = document.createElement('div');
+    historyOption.style.cssText = "display: flex; align-items: center; justify-content: space-between;";
+    historyOption.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">History (hours)</label>`;
+    const historyInput = document.createElement('input');
+    historyInput.type = "number";
+    historyInput.value = this._config.history_hours || 168;
+    historyInput.min = "24";
+    historyInput.max = "720";
+    historyInput.step = "24";
+    historyInput.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #444); background: var(--card-background-color, #111); color: var(--primary-text-color, #fff); width: 60px;";
+    historyInput.addEventListener('change', (e) => this.configChanged({ ...this._config, history_hours: Number(e.target.value) }));
+    historyOption.appendChild(historyInput);
+    genDiv.appendChild(historyOption);
     container.appendChild(genDiv);
 
     // Helpers
@@ -473,6 +974,6 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "ookla-speedtest-dashboard",
   name: "Ookla Speedtest - Dashboard",
-  description: "Advanced dashboard with 20+ sensors and history tracking",
+  description: "Fully configurable dashboard with gauges, charts, and 20+ sensors",
   preview: true
 });

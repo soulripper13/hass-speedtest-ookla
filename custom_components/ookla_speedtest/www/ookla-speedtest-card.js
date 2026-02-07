@@ -1,8 +1,13 @@
 /**
  * Ookla Speedtest Card for Home Assistant
  * A custom Lovelace card that recreates the iconic Ookla Speedtest interface
- * 
- * Version: 1.1.5
+ *
+ * Version: 1.3.0 - Fixed masonry and sections layout compatibility
+ *
+ * Layout Compatibility:
+ * - Masonry: Returns card size for proper column distribution
+ * - Sections: Uses 6 columns x 10 rows grid by default
+ * - Both layouts fully supported with proper height handling
  */
 
 class OoklaSpeedtestCard extends HTMLElement {
@@ -59,6 +64,32 @@ class OoklaSpeedtestCard extends HTMLElement {
 
   connectedCallback() {
     this.render();
+  }
+
+  /**
+   * Card size for Masonry view (1 = 50px)
+   */
+  getCardSize() {
+    return 11; // ~550px height
+  }
+
+  /**
+   * Layout options for Sections view
+   * Sections use a 12-column grid system
+   */
+  static getLayoutOptions() {
+    return {
+      grid_columns: 6,        // Half width (50% of 12 columns)
+      grid_min_columns: 4,
+      grid_max_columns: 12,
+      grid_rows: 3,
+      grid_min_rows: 3,
+      grid_max_rows: 4,
+    };
+  }
+
+  getLayoutOptions() {
+    return OoklaSpeedtestCard.getLayoutOptions();
   }
 
   updateCard() {
@@ -190,20 +221,32 @@ class OoklaSpeedtestCard extends HTMLElement {
         :host {
           display: block;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          width: 100%;
+          box-sizing: border-box;
+          container-type: inline-size;
         }
-        
+
+        * {
+          box-sizing: border-box;
+        }
+
         .card {
           background: rgba(15, 23, 42, 0.6);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-radius: 24px;
-          padding: 24px;
+          padding: 20px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
           border: 1px solid rgba(255, 255, 255, 0.08);
           color: #f8fafc;
           position: relative;
           overflow: hidden;
-          direction: ltr;
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
         }
 
         .card::before {
@@ -225,10 +268,11 @@ class OoklaSpeedtestCard extends HTMLElement {
         
         .header {
           text-align: center;
-          margin-bottom: 24px;
+          margin-bottom: 16px;
           display: flex;
           flex-direction: column;
           align-items: center;
+          flex-shrink: 0;
         }
         
         .header-icon {
@@ -263,15 +307,18 @@ class OoklaSpeedtestCard extends HTMLElement {
         .gauges-container {
           display: flex;
           justify-content: center;
-          gap: 20px;
-          margin: 32px 0 24px;
+          gap: 16px;
+          margin: 16px 0;
           position: relative;
+          flex: 1;
+          align-items: center;
         }
         
         .gauge {
           position: relative;
-          width: 160px;
-          height: 160px;
+          width: 140px;
+          height: 140px;
+          flex-shrink: 0;
         }
         
         .gauge-svg {
@@ -338,14 +385,14 @@ class OoklaSpeedtestCard extends HTMLElement {
         .go-button-container {
           display: flex;
           justify-content: center;
-          margin: -40px 0 30px;
+          margin: -30px 0 20px;
           position: relative;
           z-index: 10;
         }
         
         .go-button {
-          width: 90px;
-          height: 90px;
+          width: 80px;
+          height: 80px;
           border-radius: 50%;
           border: 4px solid rgba(255,255,255,0.1);
           background: radial-gradient(circle at 30% 30%, #0ea5e9, #0284c7);
@@ -394,8 +441,8 @@ class OoklaSpeedtestCard extends HTMLElement {
         .metrics {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
-          margin-bottom: 24px;
+          gap: 12px;
+          margin-bottom: 16px;
         }
         
         .metric {
@@ -439,11 +486,12 @@ class OoklaSpeedtestCard extends HTMLElement {
         
         .footer {
           text-align: center;
-          padding-top: 20px;
+          padding-top: 16px;
           border-top: 1px solid rgba(255,255,255,0.05);
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-shrink: 0;
         }
         
         .last-test {
@@ -481,33 +529,26 @@ class OoklaSpeedtestCard extends HTMLElement {
           background: rgba(56, 189, 248, 0.2);
           color: #7dd3fc;
         }
-        
-        /* Responsive */
-        @media (max-width: 450px) {
-          .gauges-container {
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            margin: 20px 0;
-          }
-          .gauge {
-            width: 140px;
-            height: 140px;
-          }
-          .go-button-container {
-            margin: -20px 0 20px;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-          }
-          .go-button {
-            width: 70px;
-            height: 70px;
-            font-size: 16px;
-          }
+
+        /* Container query responsive adjustments */
+        @container (max-width: 450px) {
+          .card { padding: 16px; }
+          .gauges-container { gap: 12px; }
+          .gauge { width: 120px; height: 120px; }
+          .gauge-value { font-size: 28px; }
+          .go-button { width: 70px; height: 70px; font-size: 18px; }
+          .metrics { gap: 8px; }
+          .metric { padding: 12px 8px; }
         }
-      </style>
+
+        @container (max-width: 350px) {
+          .gauges-container { flex-direction: column; gap: 8px; }
+          .gauge { width: 100px; height: 100px; }
+          .gauge-value { font-size: 24px; }
+          .go-button { width: 60px; height: 60px; font-size: 16px; }
+          .go-button-container { margin: -20px 0 16px; }
+        }
+</style>
       
       <div class="card">
         <div class="content-wrapper">
@@ -666,4 +707,4 @@ window.customCards.push({
   documentationURL: "https://github.com/soulripper13/hass-speedtest-ookla"
 });
 
-console.info("%c OOKLA SPEEDTEST CARD %c v1.1.5 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST CARD %c v1.3.0 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

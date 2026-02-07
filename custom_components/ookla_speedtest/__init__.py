@@ -332,6 +332,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register service to manually run a speed test
     async def run_speedtest_service(call: ServiceCall) -> None:
         """Service to manually run a speedtest."""
+        # Clear sensor data before running test to avoid confusion with old data
+        coordinator.async_set_updated_data(None)
         await coordinator.async_request_refresh()
 
     hass.services.async_register(

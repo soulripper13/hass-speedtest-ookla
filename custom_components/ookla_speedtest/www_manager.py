@@ -1,7 +1,9 @@
 """Manager for Lovelace card resources."""
 
 import logging
+import os
 import shutil
+import stat
 from pathlib import Path
 
 from homeassistant.components.lovelace import DOMAIN as LOVELACE_DOMAIN
@@ -58,6 +60,17 @@ async def async_setup_cards(hass: HomeAssistant) -> bool:
                 await hass.async_add_executor_job(
                     shutil.copy2, source, target
                 )
+                
+                # Ensure file is world-readable (644) so webserver can serve it
+                # specific fix for HA Green / restricted permission environments
+                def set_permissions():
+                    try:
+                        os.chmod(target, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+                    except OSError as e:
+                        _LOGGER.warning("Could not set permissions for %s: %s", target, e)
+
+                await hass.async_add_executor_job(set_permissions)
+                
                 copied_count += 1
         
         _LOGGER.debug(

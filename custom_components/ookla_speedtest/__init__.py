@@ -52,7 +52,12 @@ from .const import (
     STARTUP_DELAY,
 )
 from .helpers import validate_server_id
-from .www_manager import async_setup_cards, async_register_resources_service, async_register_cards
+from .www_manager import (
+    async_setup_cards, 
+    async_register_resources_service, 
+    async_register_cards,
+    async_remove_cards_and_resources
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -384,3 +389,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle removal of an entry."""
+    # Remove custom cards and unregister resources
+    await async_remove_cards_and_resources(hass)

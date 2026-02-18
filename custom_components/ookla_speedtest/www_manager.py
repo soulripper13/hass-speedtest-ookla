@@ -14,7 +14,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-VERSION = "1.4.4"
+VERSION = "2.3.6"
 
 # List of cards to manage
 CARDS = [
@@ -82,6 +82,41 @@ async def async_setup_cards(hass: HomeAssistant) -> bool:
     except Exception as e:
         _LOGGER.error("Failed to set up cards: %s", e)
         return False
+
+
+async def async_remove_cards_and_resources(hass: HomeAssistant) -> None:
+    """Remove cards from www folder and unregister resources."""
+    try:
+        # 1. Remove files from www directory
+        www_dir = Path(hass.config.path("www"))
+        target_dir = www_dir / "ookla_speedtest"
+        
+        if target_dir.exists():
+            _LOGGER.info("Removing Ookla Speedtest cards from www directory")
+            await hass.async_add_executor_job(shutil.rmtree, target_dir)
+            
+        # 2. Unregister resources from Lovelace
+        lovelace = hass.data.get(LOVELACE_DOMAIN)
+        if lovelace and hasattr(lovelace, "resources") and lovelace.resources.loaded:
+            resources = lovelace.resources
+            
+            for card in CARDS:
+                base_url = f"/local/ookla_speedtest/{card}"
+                
+                # Find resource to remove
+                found_resource = None
+                for resource in resources.async_items():
+                    # Check base URL match (ignoring query params)
+                    if resource["url"].split("?")[0] == base_url:
+                        found_resource = resource
+                        break
+                
+                if found_resource:
+                    _LOGGER.info("Unregistering Lovelace resource: %s", base_url)
+                    await resources.async_delete_item(found_resource["id"])
+                    
+    except Exception as e:
+        _LOGGER.error("Failed to remove cards/resources: %s", e)
 
 
 async def async_register_cards(hass: HomeAssistant) -> None:

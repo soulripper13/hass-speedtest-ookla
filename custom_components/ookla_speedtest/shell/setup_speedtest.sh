@@ -47,22 +47,92 @@ check_executable_permissions() {
     fi
 }
 
-# Function to detect architecture and download speedtest.bin
+# Function to detect architecture
+detect_arch() {
+    local detected_arch=""
+    
+    # Method 1: Check dpkg (Debian/Ubuntu/Raspbian/HAOS)
+    if command -v dpkg >/dev/null 2>&1; then
+        local dpkg_arch
+        dpkg_arch=$(dpkg --print-architecture)
+        case "$dpkg_arch" in
+            amd64) detected_arch="x86_64" ;;
+            arm64) detected_arch="aarch64" ;;
+            armhf) detected_arch="armhf" ;;
+            armel) detected_arch="armel" ;;
+            i386) detected_arch="i386" ;;
+        esac
+    fi
+    
+    # Method 2: Check apk (Alpine)
+    if [ -z "$detected_arch" ] && command -v apk >/dev/null 2>&1; then
+        local apk_arch
+        apk_arch=$(apk --print-arch)
+        case "$apk_arch" in
+            x86_64) detected_arch="x86_64" ;;
+            aarch64) detected_arch="aarch64" ;;
+            armv7) detected_arch="armhf" ;;
+            x86) detected_arch="i386" ;;
+        esac
+    fi
+
+    # Method 3: Fallback to uname -m with bitness check
+    if [ -z "$detected_arch" ]; then
+        local uname_arch
+        uname_arch=$(uname -m)
+        local bitness="64"
+        if command -v getconf >/dev/null 2>&1; then
+            bitness=$(getconf LONG_BIT)
+        fi
+        
+        case "$uname_arch" in
+            x86_64)
+                if [ "$bitness" = "32" ]; then detected_arch="i386"; else detected_arch="x86_64"; fi
+                ;;
+            aarch64)
+                if [ "$bitness" = "32" ]; then detected_arch="armhf"; else detected_arch="aarch64"; fi
+                ;;
+            armv7l|armv7)
+                detected_arch="armhf" # Assume armhf for armv7
+                ;;
+            armv6l|arm)
+                detected_arch="armel"
+                ;;
+            i*86)
+                detected_arch="i386"
+                ;;
+            *)
+                detected_arch="$uname_arch"
+                ;;
+        esac
+    fi
+    echo "$detected_arch"
+}
+
+# Function to download speedtest.bin
 download_speedtest_bin() {
     local arch
-    arch=$(uname -m)
+    arch=$(detect_arch)
     local url=""
     local filename="speedtest.tgz"
+
+    echo "Detected architecture: $arch"
 
     case "$arch" in
         x86_64)
             url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-x86_64.tgz"
             ;;
-        arm|armv7l)
+        armhf)
+            url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-armhf.tgz"
+            ;;
+        armel)
             url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-armel.tgz"
             ;;
         aarch64)
             url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-aarch64.tgz"
+            ;;
+        i386)
+            url="https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-i386.tgz"
             ;;
         *)
             log_error "Unsupported architecture ($arch)."
@@ -71,21 +141,39 @@ download_speedtest_bin() {
             ;;
     esac
 
-    echo "Downloading speedtest-cli for $arch..."
-    if ! curl -L -o "/tmp/$filename" "$url" 2>/dev/null; then
+    echo "Downloading speedtest-cli for $arch from $url..."
+    if ! curl -f -L -o "/tmp/$filename" "$url"; then
         log_error "Failed to download speedtest-cli from $url."
-        log_error "Manually download the binary from https://www.speedtest.net/apps/cli and place it in ${SHELL_DIR}/speedtest.bin."
+        log_error "Check your internet connection or manually download the binary."
         exit 1
     fi
 
     echo "Extracting speedtest-cli..."
-    if ! tar -xzf "/tmp/$filename" -C "/tmp" speedtest 2>/dev/null; then
+    # Extract to a temp dir to handle structure
+    mkdir -p "/tmp/speedtest_extract"
+    if ! tar -xzf "/tmp/$filename" -C "/tmp/speedtest_extract" 2>/dev/null; then
         log_error "Failed to extract speedtest-cli from /tmp/$filename."
         rm -f "/tmp/$filename"
+        rm -rf "/tmp/speedtest_extract"
         exit 1
     fi
-    mv "/tmp/speedtest" "${SHELL_DIR}/speedtest.bin"
+    
+    # Locate the binary (it might be in root or subfolder)
+    local binary_path
+    binary_path=$(find "/tmp/speedtest_extract" -name "speedtest" -type f | head -n 1)
+    
+    if [ -z "$binary_path" ]; then
+        log_error "Could not find 'speedtest' binary in the downloaded archive."
+        rm -f "/tmp/$filename"
+        rm -rf "/tmp/speedtest_extract"
+        exit 1
+    fi
+
+    mv "$binary_path" "${SHELL_DIR}/speedtest.bin"
     rm -f "/tmp/$filename"
+    rm -rf "/tmp/speedtest_extract"
+    
+    chmod +x "${SHELL_DIR}/speedtest.bin"
 }
 
 # Main setup process
@@ -113,13 +201,27 @@ if [ -d "${SCRIPT_DIR}" ]; then
                 log_error "Failed to copy ${script} to ${SHELL_DIR}."
                 exit 1
             }
+            chmod +x "${SHELL_DIR}/${script}"
         else
             echo "${script} already exists in ${SHELL_DIR}, skipping copy."
+            chmod +x "${SHELL_DIR}/${script}"
         fi
     done
 else
     log_error "Integration shell directory (${SCRIPT_DIR}) not found. Ensure the integration is installed."
     exit 1
+fi
+
+# Check if speedtest.bin exists and works
+if [ -f "${SHELL_DIR}/speedtest.bin" ]; then
+    echo "Verifying existing speedtest.bin..."
+    # Attempt to execute the binary to check for Exec format error
+    if ! "${SHELL_DIR}/speedtest.bin" --version >/dev/null 2>&1; then
+        echo "Existing speedtest.bin is invalid or incompatible (Exec format error?). Removing it..."
+        rm -f "${SHELL_DIR}/speedtest.bin"
+    else
+        echo "Existing speedtest.bin is valid."
+    fi
 fi
 
 # Download speedtest.bin if not present
@@ -144,4 +246,3 @@ echo "Accepting Ookla EULA for speedtest.bin..."
 }
 
 echo "Setup complete! Restart Home Assistant to apply changes."
-echo "If errors occurred, follow manual setup instructions in the README."

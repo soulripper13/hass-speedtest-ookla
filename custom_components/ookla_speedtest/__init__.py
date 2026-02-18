@@ -281,7 +281,8 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             return data
         except subprocess.CalledProcessError as e:
-            _LOGGER.error("Speedtest failed: %s. Command: %s", e.stderr, " ".join(cmd))
+            error_msg = e.stderr or e.stdout or "No error output"
+            _LOGGER.error("Speedtest failed (exit code %s): %s. Command: %s", e.returncode, error_msg, " ".join(cmd))
             return None
         except json.JSONDecodeError as e:
             _LOGGER.error(

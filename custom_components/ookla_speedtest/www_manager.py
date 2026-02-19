@@ -14,7 +14,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-VERSION = "2.3.6"
+VERSION = "2.3.7"
 
 # List of cards to manage
 CARDS = [

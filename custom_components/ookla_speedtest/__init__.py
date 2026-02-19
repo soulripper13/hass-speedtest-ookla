@@ -59,25 +59,71 @@ from .www_manager import (
     async_remove_cards_and_resources
 )
 
+from .const import (
+    ATTR_BUFFERBLOAT_GRADE,
+    ATTR_DATE_LAST_TEST,
+    ATTR_DL_PCT,
+    ATTR_DOWNLOAD,
+    ATTR_DOWNLOAD_LATENCY_IQM,
+    ATTR_DOWNLOAD_LATENCY_LOW,
+    ATTR_DOWNLOAD_LATENCY_HIGH,
+    ATTR_DOWNLOAD_LATENCY_JITTER,
+    ATTR_ISP,
+    ATTR_JITTER,
+    ATTR_PING,
+    ATTR_PING_LOW,
+    ATTR_PING_HIGH,
+    ATTR_RESULT_URL,
+    ATTR_SERVER,
+    ATTR_UL_PCT,
+    ATTR_UPLOAD,
+    ATTR_UPLOAD_LATENCY_IQM,
+    ATTR_UPLOAD_LATENCY_LOW,
+    ATTR_UPLOAD_LATENCY_HIGH,
+    ATTR_UPLOAD_LATENCY_JITTER,
+    CONF_ISP_DL_SPEED,
+    CONF_ISP_UL_SPEED,
+    CONF_MANUAL,
+    CONF_SCAN_INTERVAL,
+    CONF_SERVER_ID,
+    CONF_START_TIME,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    INTEGRATION_SHELL_DIR,
+    LAUNCH_SCRIPT_PATH,
+    SPEEDTEST_BIN_PATH,
+    SERVICE_RUN_SPEEDTEST,
+    STARTUP_DELAY,
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.SENSOR]
 
 
-# Set execute permissions on shell scripts
-if os.path.isdir(INTEGRATION_SHELL_DIR):
-    for script_name in os.listdir(INTEGRATION_SHELL_DIR):
-        script_path = os.path.join(INTEGRATION_SHELL_DIR, script_name)
-        if script_path.endswith(".sh"):
-            try:
-                st = os.stat(script_path)
-                os.chmod(
-                    script_path, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+async def async_accept_license(hass: HomeAssistant) -> None:
+    """Proactively accept the Ookla license if the binary exists.
+    
+    This prevents failures after a restore where the /root/.ookla config is missing
+    even if the /config/shell binary is still present.
+    """
+    if os.path.exists(SPEEDTEST_BIN_PATH):
+        _LOGGER.debug("Ensuring Ookla license is accepted...")
+        try:
+            # We run with --accept-license and --accept-gdpr to ensure the state is set
+            # This doesn't trigger a full test, just ensures license state is initialized
+            process = await hass.async_add_executor_job(
+                lambda: subprocess.run(
+                    [SPEEDTEST_BIN_PATH, "--accept-license", "--accept-gdpr", "--version"],
+                    capture_output=True,
+                    text=True,
+                    check=False
                 )
-            except OSError as e:
-                _LOGGER.error(
-                    "Failed to make shell script %s executable: %s", script_path, e
-                )
+            )
+            if process.returncode != 0:
+                _LOGGER.warning("Could not automatically accept Ookla license. Manual action may be needed.")
+        except Exception as e:
+            _LOGGER.debug("Error during license acceptance: %s", e)
 
 
 async def async_setup_cards_and_resources(hass: HomeAssistant) -> None:
@@ -369,6 +415,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up custom cards and register resources service
     # Copies cards to www folder and provides service for auto-registration
     await async_setup_cards_and_resources(hass)
+
+    # Automatically ensure license is accepted (prevents failures after restore)
+    await async_accept_license(hass)
 
     # Register options update listener
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))

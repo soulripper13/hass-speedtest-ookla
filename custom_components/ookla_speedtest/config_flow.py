@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import subprocess
 from datetime import timedelta
 from typing import Any
 
@@ -26,9 +25,13 @@ from .const import (
     DEFAULT_ENABLE_LATENCY,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
-    INTEGRATION_SHELL_DIR,
 )
-from .helpers import get_speedtest_servers, validate_server_id, validate_time_format
+from .helpers import (
+    get_speedtest_servers,
+    validate_server_id,
+    validate_time_format,
+)
+from .binary_manager import async_setup_speedtest
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -192,24 +195,12 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return OoklaSpeedtestOptionsFlow()
 
     async def _run_setup_script(self) -> None:
-        """Run the setup script to prepare the environment."""
+        """Set up the speedtest binary using pure Python."""
         try:
-            process = await self.hass.async_add_executor_job(
-                lambda: subprocess.run(
-                    [f"{INTEGRATION_SHELL_DIR}/setup_speedtest.sh"],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-            )
-            _LOGGER.debug("Setup script completed: %s", process.stdout)
-        except subprocess.CalledProcessError as e:
-            _LOGGER.error("Setup script failed: %s", e.stderr)
-            _LOGGER.error(
-                "Failed to run setup script. Check logs and ensure /config/shell/ is writable. "
-                "Ensure scripts are executable with 'chmod +x %s/*.sh'.",
-                INTEGRATION_SHELL_DIR,
-            )
+            await async_setup_speedtest(self.hass)
+            _LOGGER.debug("Speedtest binary setup completed successfully")
+        except Exception as e:
+            _LOGGER.error("Failed to set up speedtest binary: %s", e)
 
 
 class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):

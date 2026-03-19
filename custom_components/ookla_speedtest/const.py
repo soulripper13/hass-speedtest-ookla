@@ -21,9 +21,7 @@ STARTUP_DELAY = 60  # seconds - delay before first speedtest in interval mode
 SERVICE_RUN_SPEEDTEST = "run_speedtest"
 
 # Paths
-SPEEDTEST_BIN_PATH = "/config/shell/speedtest.bin"
-LAUNCH_SCRIPT_PATH = "/config/shell/launch_speedtest.sh"
-INTEGRATION_SHELL_DIR = "/config/custom_components/ookla_speedtest/shell"
+SPEEDTEST_BIN_PATH = "/config/custom_components/ookla_speedtest/bin/speedtest.bin"
 
 # Sensor attributes
 ATTR_PING = "ping"

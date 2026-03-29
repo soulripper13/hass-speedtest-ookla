@@ -2,7 +2,7 @@
  * Ookla Speedtest Card - Dashboard Version
  * Full-featured dashboard card with configurable gauges and charts
  *
- * Version: 1.4.0 - Improved masonry and sections layout compatibility
+ * Version: 1.5.0 - Theme-adaptive background using HA CSS variables
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
@@ -426,16 +426,16 @@ class OoklaSpeedtestDashboard extends HTMLElement {
           }
   
           .card {
-            background: rgba(15, 23, 42, 0.6);
+            background: var(--ha-card-background, var(--card-background-color, rgba(15, 23, 42, 0.6)));
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-radius: 24px;
             padding: 12px;
             padding-left: max(12px, env(safe-area-inset-left));
             padding-right: max(12px, env(safe-area-inset-right));
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.08)));
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
-            color: #f8fafc;
+            color: var(--primary-text-color, #f8fafc);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             width: 100%;
             height: 100%;
@@ -448,9 +448,9 @@ class OoklaSpeedtestDashboard extends HTMLElement {
             direction: ltr;
           }
           .header { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
-          .isp-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #f8fafc; }
+          .isp-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: var(--primary-text-color, #f8fafc); }
           .isp-name::before { content: attr(data-text); }
-          .server-name { font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+          .server-name { font-size: 12px; color: var(--secondary-text-color, #94a3b8); display: flex; align-items: center; gap: 6px; }
           .server-name::before { content: attr(data-text); }
           
           .metrics-grid {
@@ -461,19 +461,19 @@ class OoklaSpeedtestDashboard extends HTMLElement {
             flex-shrink: 0;
           }
           .metric {
-            background: rgba(255,255,255,0.03);
+            background: var(--secondary-background-color, rgba(255,255,255,0.03));
             border-radius: 12px;
             padding: 8px 4px;
             text-align: center;
-            border: 1px solid rgba(255,255,255,0.02);
+            border: 1px solid var(--divider-color, rgba(255,255,255,0.02));
             cursor: pointer;
             transition: all 0.2s;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
           }
-          .metric:hover { transform: translateY(-2px); background: rgba(255,255,255,0.05); }
-          .metric:active { transform: translateY(0); background: rgba(255,255,255,0.07); }
-          .metric .label { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600; }
+          .metric:hover { transform: translateY(-2px); background: var(--secondary-background-color, rgba(255,255,255,0.05)); }
+          .metric:active { transform: translateY(0); background: var(--secondary-background-color, rgba(255,255,255,0.07)); }
+          .metric .label { font-size: 9px; color: var(--secondary-text-color, #94a3b8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600; }
           .metric .value { font-size: 16px; font-weight: 700; line-height: 1; }
           .metric .value::before { content: attr(data-val); }
   
@@ -482,7 +482,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
             grid-template-columns: repeat(4, 1fr);
             gap: 6px;
             margin-bottom: 10px;
-            border-top: 1px solid rgba(255,255,255,0.05);
+            border-top: 1px solid var(--divider-color, rgba(255,255,255,0.05));
             padding-top: 10px;
             flex-shrink: 0;
           }
@@ -518,7 +518,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
   
           .gauge-bg {
             fill: none;
-            stroke: rgba(255,255,255,0.05);
+            stroke: var(--divider-color, rgba(255,255,255,0.05));
             stroke-width: 10;
             stroke-linecap: round;
             stroke-dasharray: 424 566;
@@ -548,7 +548,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
   
           .gauge-label {
             font-size: 9px;
-            color: #94a3b8;
+            color: var(--secondary-text-color, #94a3b8);
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 4px;
@@ -558,7 +558,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
           .gauge-value {
             font-size: 24px;
             font-weight: 800;
-            color: #fff;
+            color: var(--primary-text-color, #fff);
             line-height: 1;
             letter-spacing: -0.5px;
             text-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -566,7 +566,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
   
           .gauge-unit {
             font-size: 9px;
-            color: #64748b;
+            color: var(--secondary-text-color, #64748b);
             margin-top: 2px;
             font-weight: 500;
           }
@@ -580,10 +580,10 @@ class OoklaSpeedtestDashboard extends HTMLElement {
             min-height: 100px;
           }
           .chart-box {
-            background: rgba(15, 23, 42, 0.4);
+            background: var(--secondary-background-color, rgba(15, 23, 42, 0.4));
             border-radius: 16px;
             padding: 8px;
-            border: 1px solid rgba(255,255,255,0.03);
+            border: 1px solid var(--divider-color, rgba(255,255,255,0.03));
             cursor: pointer;
             display: flex;
             flex-direction: column;
@@ -592,9 +592,9 @@ class OoklaSpeedtestDashboard extends HTMLElement {
             -webkit-tap-highlight-color: transparent;
             transition: all 0.2s;
           }
-          .chart-box:hover { background: rgba(15, 23, 42, 0.5); }
-          .chart-box:active { transform: scale(0.98); background: rgba(15, 23, 42, 0.6); }
-          .chart-title { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; font-weight: 600; }
+          .chart-box:hover { background: var(--secondary-background-color, rgba(15, 23, 42, 0.5)); }
+          .chart-box:active { transform: scale(0.98); background: var(--secondary-background-color, rgba(15, 23, 42, 0.6)); }
+          .chart-title { font-size: 10px; color: var(--secondary-text-color, #94a3b8); text-transform: uppercase; margin-bottom: 6px; font-weight: 600; }
           .chart-box svg { width: 100%; height: 70px; overflow: visible; }
           
           .footer {
@@ -602,10 +602,10 @@ class OoklaSpeedtestDashboard extends HTMLElement {
             align-items: center;
             justify-content: space-between;
             padding-top: 10px;
-            border-top: 1px solid rgba(255,255,255,0.05);
+            border-top: 1px solid var(--divider-color, rgba(255,255,255,0.05));
             flex-shrink: 0;
           }
-          .last-test { font-size: 11px; color: #64748b; }
+          .last-test { font-size: 11px; color: var(--secondary-text-color, #64748b); }
           .run-btn {
             padding: 6px 15px; border: none; border-radius: 20px;
             background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
@@ -1018,4 +1018,4 @@ window.customCards.push({
   preview: true
 });
 
-console.info("%c OOKLA SPEEDTEST DASHBOARD %c v1.4.4 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST DASHBOARD %c v1.5.0 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

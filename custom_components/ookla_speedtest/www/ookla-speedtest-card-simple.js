@@ -2,7 +2,7 @@
  * Ookla Speedtest Card - Simplified Version
  * Basic working version to test setup
  *
- * Version: 1.4.0 - Improved masonry and sections layout compatibility
+ * Version: 1.5.0 - Theme-adaptive background using HA CSS variables
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
@@ -104,14 +104,14 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
         }
 
         .card {
-          background: rgba(15, 23, 42, 0.6);
+          background: var(--ha-card-background, var(--card-background-color, rgba(15, 23, 42, 0.6)));
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          color: white;
+          color: var(--primary-text-color, #f8fafc);
           padding: 16px;
           border-radius: 24px;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.08)));
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
           width: 100%;
           height: 100%;
@@ -247,4 +247,4 @@ window.customCards.push({
   description: "Simplified test version"
 });
 
-console.info("%c OOKLA SPEEDTEST SIMPLE %c v1.4.4 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST SIMPLE %c v1.5.0 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

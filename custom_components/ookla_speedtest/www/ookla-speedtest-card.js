@@ -2,7 +2,7 @@
  * Ookla Speedtest Card for Home Assistant
  * A custom Lovelace card that recreates the iconic Ookla Speedtest interface
  *
- * Version: 1.4.0 - Improved masonry and sections layout compatibility
+ * Version: 1.5.0 - Theme-adaptive background using HA CSS variables
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
@@ -256,14 +256,14 @@ class OoklaSpeedtestCard extends HTMLElement {
         }
 
         .card {
-          background: rgba(15, 23, 42, 0.6);
+          background: var(--ha-card-background, var(--card-background-color, rgba(15, 23, 42, 0.6)));
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-radius: 24px;
           padding: 20px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          color: #f8fafc;
+          border: 1px solid var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.08)));
+          color: var(--primary-text-color, #f8fafc);
           position: relative;
           overflow: hidden;
           width: 100%;
@@ -284,7 +284,7 @@ class OoklaSpeedtestCard extends HTMLElement {
           left: -50%;
           width: 200%;
           height: 200%;
-          background: radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.05), transparent 60%);
+          background: radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.02), transparent 60%);
           pointer-events: none;
           z-index: 0;
         }
@@ -319,14 +319,14 @@ class OoklaSpeedtestCard extends HTMLElement {
         .isp-name {
           font-size: 20px;
           font-weight: 700;
-          color: #f8fafc;
+          color: var(--primary-text-color, #f8fafc);
           margin-bottom: 4px;
           text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
-        
+
         .server-name {
           font-size: 13px;
-          color: #94a3b8;
+          color: var(--secondary-text-color, #94a3b8);
           display: flex;
           align-items: center;
           gap: 6px;
@@ -363,7 +363,7 @@ class OoklaSpeedtestCard extends HTMLElement {
         
         .gauge-bg {
           fill: none;
-          stroke: rgba(255,255,255,0.05);
+          stroke: var(--divider-color, rgba(255,255,255,0.05));
           stroke-width: 12;
           stroke-linecap: round;
           stroke-dasharray: 424 566;
@@ -393,7 +393,7 @@ class OoklaSpeedtestCard extends HTMLElement {
         
         .gauge-label {
           font-size: 11px;
-          color: #94a3b8;
+          color: var(--secondary-text-color, #94a3b8);
           text-transform: uppercase;
           letter-spacing: 1.5px;
           margin-bottom: 8px;
@@ -403,7 +403,7 @@ class OoklaSpeedtestCard extends HTMLElement {
         .gauge-value {
           font-size: 32px;
           font-weight: 800;
-          color: #fff;
+          color: var(--primary-text-color, #fff);
           line-height: 1;
           letter-spacing: -0.5px;
           text-shadow: 0 2px 10px rgba(0,0,0,0.3);
@@ -411,7 +411,7 @@ class OoklaSpeedtestCard extends HTMLElement {
         
         .gauge-unit {
           font-size: 12px;
-          color: #64748b;
+          color: var(--secondary-text-color, #64748b);
           margin-top: 4px;
           font-weight: 500;
         }
@@ -480,17 +480,17 @@ class OoklaSpeedtestCard extends HTMLElement {
         }
         
         .metric {
-          background: rgba(255,255,255,0.03);
+          background: var(--secondary-background-color, rgba(255,255,255,0.03));
           border-radius: 16px;
           padding: 16px 12px;
           text-align: center;
-          border: 1px solid rgba(255,255,255,0.02);
+          border: 1px solid var(--divider-color, rgba(255,255,255,0.02));
           transition: transform 0.2s, background 0.2s;
           cursor: pointer;
         }
         
         .metric:hover {
-          background: rgba(255,255,255,0.05);
+          background: var(--secondary-background-color, rgba(255,255,255,0.05));
           transform: translateY(-2px);
         }
         
@@ -502,7 +502,7 @@ class OoklaSpeedtestCard extends HTMLElement {
         
         .metric-label {
           font-size: 10px;
-          color: #94a3b8;
+          color: var(--secondary-text-color, #94a3b8);
           text-transform: uppercase;
           letter-spacing: 1px;
           margin-bottom: 4px;
@@ -512,7 +512,7 @@ class OoklaSpeedtestCard extends HTMLElement {
         .metric-value {
           font-size: 16px;
           font-weight: 700;
-          color: #f8fafc;
+          color: var(--primary-text-color, #f8fafc);
         }
         
         .metric-ping .metric-value { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }
@@ -522,7 +522,7 @@ class OoklaSpeedtestCard extends HTMLElement {
         .footer {
           text-align: center;
           padding-top: 16px;
-          border-top: 1px solid rgba(255,255,255,0.05);
+          border-top: 1px solid var(--divider-color, rgba(255,255,255,0.05));
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -531,7 +531,7 @@ class OoklaSpeedtestCard extends HTMLElement {
         
         .last-test {
           font-size: 11px;
-          color: #64748b;
+          color: var(--secondary-text-color, #64748b);
           display: flex;
           align-items: center;
           gap: 6px;
@@ -544,7 +544,7 @@ class OoklaSpeedtestCard extends HTMLElement {
           width: 6px;
           height: 6px;
           border-radius: 50%;
-          background: #64748b;
+          background: var(--secondary-text-color, #64748b);
         }
         
         .result-link {
@@ -841,4 +841,4 @@ window.customCards.push({
   documentationURL: "https://github.com/soulripper13/hass-speedtest-ookla"
 });
 
-console.info("%c OOKLA SPEEDTEST CARD %c v1.4.4 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST CARD %c v1.5.0 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

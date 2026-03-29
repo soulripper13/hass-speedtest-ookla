@@ -2,7 +2,7 @@
  * Ookla Speedtest Card - Minimal Version
  * A clean, simple speedtest card with large typography
  *
- * Version: 1.4.0 - Improved masonry and sections layout compatibility
+ * Version: 1.5.0 - Theme-adaptive background using HA CSS variables
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
@@ -155,14 +155,14 @@ class OoklaSpeedtestMinimal extends HTMLElement {
         }
 
         .card {
-          background: rgba(15, 23, 42, 0.6);
+          background: var(--ha-card-background, var(--card-background-color, rgba(15, 23, 42, 0.6)));
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-radius: 24px;
           padding: 20px;
-          color: #f8fafc;
+          color: var(--primary-text-color, #f8fafc);
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.08)));
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
           width: 100%;
           height: 100%;
@@ -176,7 +176,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
         }
         .isp-text {
           font-size: 11px;
-          color: #94a3b8;
+          color: var(--secondary-text-color, #94a3b8);
           text-transform: uppercase;
           letter-spacing: 1.5px;
           margin-bottom: 20px;
@@ -197,7 +197,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
         }
         .speed-label {
           font-size: 10px;
-          color: #94a3b8;
+          color: var(--secondary-text-color, #94a3b8);
           text-transform: uppercase;
           letter-spacing: 1px;
           margin-bottom: 8px;
@@ -220,9 +220,9 @@ class OoklaSpeedtestMinimal extends HTMLElement {
           align-items: center;
           gap: 8px;
           font-size: 14px;
-          color: #94a3b8;
+          color: var(--secondary-text-color, #94a3b8);
           margin-bottom: 24px;
-          background: rgba(255,255,255,0.03);
+          background: var(--secondary-background-color, rgba(255,255,255,0.03));
           padding: 8px 16px;
           border-radius: 12px;
           width: fit-content;
@@ -230,7 +230,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
           transition: background 0.2s;
         }
         .ping-row:hover {
-          background: rgba(255,255,255,0.08);
+          background: var(--secondary-background-color, rgba(255,255,255,0.08));
         }
         .ping-value {
           color: #fbbf24;
@@ -410,4 +410,4 @@ window.customCards.push({
   preview: true
 });
 
-console.info("%c OOKLA SPEEDTEST MINIMAL %c v1.4.4 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST MINIMAL %c v1.5.0 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

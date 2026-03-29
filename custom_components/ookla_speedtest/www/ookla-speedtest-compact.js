@@ -2,7 +2,7 @@
  * Ookla Speedtest Card - Compact Version (Bubble Style)
  * Minimalist pill-shaped card inspired by Bubble Card design
  *
- * Version: 1.4.1 - Fixed CSS scoping issues using Shadow DOM
+ * Version: 1.5.0 - Theme-adaptive background using HA CSS variables
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
@@ -456,4 +456,4 @@ window.customCards.push({
   preview: true
 });
 
-console.info("%c OOKLA COMPACT (BUBBLE) %c v1.4.5 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA COMPACT (BUBBLE) %c v1.5.0 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

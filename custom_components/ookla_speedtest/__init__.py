@@ -48,6 +48,7 @@ from .const import (
     SERVICE_RUN_SPEEDTEST,
     STARTUP_DELAY,
 )
+from .binary_manager import async_setup_speedtest
 from .helpers import validate_server_id
 from .www_manager import (
     async_setup_cards,
@@ -285,6 +286,9 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ookla Speedtest from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+
+    # Ensure binary is present and valid, download if missing
+    await async_setup_speedtest(hass)
 
     # Get config from options first, fall back to data for backwards compatibility
     server_id = entry.options.get(

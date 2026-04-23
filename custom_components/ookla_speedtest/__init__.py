@@ -36,12 +36,14 @@ from .const import (
     ATTR_UPLOAD_LATENCY_LOW,
     ATTR_UPLOAD_LATENCY_HIGH,
     ATTR_UPLOAD_LATENCY_JITTER,
+    CONF_FALLBACK_TO_CLOSEST,
     CONF_ISP_DL_SPEED,
     CONF_ISP_UL_SPEED,
     CONF_MANUAL,
     CONF_SCAN_INTERVAL,
     CONF_SERVER_ID,
     CONF_START_TIME,
+    DEFAULT_FALLBACK_TO_CLOSEST,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     SPEEDTEST_BIN_PATH,
@@ -109,6 +111,7 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         start_time: str | None = None,
         isp_dl_speed: float | None = None,
         isp_ul_speed: float | None = None,
+        fallback_to_closest: bool = DEFAULT_FALLBACK_TO_CLOSEST,
     ) -> None:
         """Initialize the coordinator."""
         self.server_id = server_id
@@ -117,6 +120,7 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.scan_interval = scan_interval
         self.isp_dl_speed = isp_dl_speed
         self.isp_ul_speed = isp_ul_speed
+        self.fallback_to_closest = fallback_to_closest
         self._unsub_schedule = None
 
         # If start_time is set, we handle scheduling manually to prevent drift and align to clock
@@ -180,89 +184,58 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self.start_time:
             self._schedule_next()
 
-        cmd = [SPEEDTEST_BIN_PATH, "--accept-license", "--accept-gdpr", "--format=json"]
-        if self.server_id != "closest" and validate_server_id(self.server_id):
-            cmd.extend(["-s", self.server_id])
+        server_id = (
+            self.server_id
+            if self.server_id != "closest" and validate_server_id(self.server_id)
+            else None
+        )
+        cmd = self._build_speedtest_cmd(server_id)
 
         try:
-            process = await self.hass.async_add_executor_job(
-                lambda: subprocess.run(cmd, capture_output=True, text=True, check=True)
-            )
+            process = await self._async_run_speedtest(cmd)
             result = json.loads(process.stdout)
 
             _LOGGER.debug("Result from speedtest invocation: %s", result)
-
-            data = {
-                # ping { jitter, latency, low, high}
-                ATTR_PING: round(result["ping"]["latency"], 2),
-                ATTR_JITTER: round(result["ping"]["jitter"], 2),
-                ATTR_PING_LOW: round(result["ping"]["low"], 2),
-                ATTR_PING_HIGH: round(result["ping"]["high"], 2),
-                # download { bandwidth, bytes, elapsed, latency { iqm, low, high, jitter }}
-                ATTR_DOWNLOAD: round(result["download"]["bandwidth"] * 8 / 1000000, 2),
-                ATTR_DOWNLOAD_LATENCY_IQM: round(result["download"]["latency"]["iqm"], 2),
-                ATTR_DOWNLOAD_LATENCY_LOW: round(result["download"]["latency"]["low"], 2),
-                ATTR_DOWNLOAD_LATENCY_HIGH: round(result["download"]["latency"]["high"], 2),
-                ATTR_DOWNLOAD_LATENCY_JITTER: round(result["download"]["latency"]["jitter"], 2),
-                # upload { bandwidth, bytes, elapsed, latency { iqm, low, high, jitter }}
-                ATTR_UPLOAD: round(result["upload"]["bandwidth"] * 8 / 1000000, 2),
-                ATTR_UPLOAD_LATENCY_IQM: round(result["upload"]["latency"]["iqm"], 2),
-                ATTR_UPLOAD_LATENCY_LOW: round(result["upload"]["latency"]["low"], 2),
-                ATTR_UPLOAD_LATENCY_HIGH: round(result["upload"]["latency"]["high"], 2),
-                ATTR_UPLOAD_LATENCY_JITTER: round(result["upload"]["latency"]["jitter"], 2),
-                # isp
-                ATTR_ISP: result["isp"],
-                # interface { internalIp, name, macAddr, isVpn, externalIp }
-                # server { id, host, port, name, location, country, ip }
-                ATTR_SERVER: (
-                    # produces: Boost Mobile (Chicago, IL, United States)
-                    f"{result['server']['name']} "
-                    f"({result['server']['location']}, {result['server']['country']})"
-                ),
-                # result { id, url, persisted }
-                ATTR_RESULT_URL: result.get("result", {}).get("url", ""),
-                ATTR_DATE_LAST_TEST: dt_util.now(),
-            }
-
-            if self.isp_dl_speed and data[ATTR_DOWNLOAD] > 0:
-                data[ATTR_DL_PCT] = round(
-                    (data[ATTR_DOWNLOAD] / self.isp_dl_speed) * 100, 1
-                )
-
-            if self.isp_ul_speed and data[ATTR_UPLOAD] > 0:
-                data[ATTR_UL_PCT] = round(
-                    (data[ATTR_UPLOAD] / self.isp_ul_speed) * 100, 1
-                )
-
-            # Bufferbloat Calculation
-            # Calculate the increase in latency under load
-            ping_idle = data[ATTR_PING]
-            # Handle potential 0/None values if test failed partially
-            ping_dl = data.get(ATTR_DOWNLOAD_LATENCY_IQM, 0)
-            ping_ul = data.get(ATTR_UPLOAD_LATENCY_IQM, 0)
-            
-            if ping_dl and ping_ul:
-                max_loaded = max(ping_dl, ping_ul)
-                # Ensure we don't get negative delta due to variance
-                delta = max(0, max_loaded - ping_idle)
-                
-                if delta <= 30:
-                    grade = "A"
-                elif delta <= 60:
-                    grade = "B"
-                elif delta <= 120:
-                    grade = "C"
-                elif delta <= 300:
-                    grade = "D"
-                else:
-                    grade = "F"
-                
-                data[ATTR_BUFFERBLOAT_GRADE] = grade
-            else:
-                data[ATTR_BUFFERBLOAT_GRADE] = None
-
-            return data
+            return self._process_speedtest_result(result)
         except subprocess.CalledProcessError as e:
+            if self._should_fallback_to_closest(e, server_id):
+                _LOGGER.warning(
+                    "Configured speedtest server %s is unavailable; retrying with closest server",
+                    server_id,
+                )
+                fallback_cmd = self._build_speedtest_cmd(None)
+                try:
+                    process = await self._async_run_speedtest(fallback_cmd)
+                    result = json.loads(process.stdout)
+                    _LOGGER.debug("Result from fallback speedtest invocation: %s", result)
+                    return self._process_speedtest_result(result)
+                except subprocess.CalledProcessError as fallback_error:
+                    fallback_error_msg = (
+                        fallback_error.stderr
+                        or fallback_error.stdout
+                        or "No error output"
+                    )
+                    _LOGGER.error(
+                        "Fallback speedtest failed (exit code %s): %s. Command: %s",
+                        fallback_error.returncode,
+                        fallback_error_msg,
+                        " ".join(fallback_cmd),
+                    )
+                    return None
+                except json.JSONDecodeError as fallback_json_error:
+                    _LOGGER.error(
+                        "Failed to parse fallback Speedtest JSON output: %s. Output: %s",
+                        fallback_json_error,
+                        process.stdout if "process" in locals() else "N/A",
+                    )
+                    return None
+                except (KeyError, TypeError) as fallback_data_error:
+                    _LOGGER.error(
+                        "Unexpected data format in fallback speedtest result: %s",
+                        fallback_data_error,
+                    )
+                    return None
+
             error_msg = e.stderr or e.stdout or "No error output"
             _LOGGER.error("Speedtest failed (exit code %s): %s. Command: %s", e.returncode, error_msg, " ".join(cmd))
             return None
@@ -281,6 +254,107 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "Unexpected error during speedtest: %s. Command: %s", e, " ".join(cmd)
             )
             return None
+
+    @staticmethod
+    def _build_speedtest_cmd(server_id: str | None) -> list[str]:
+        """Build the speedtest command for an optional server ID."""
+        cmd = [SPEEDTEST_BIN_PATH, "--accept-license", "--accept-gdpr", "--format=json"]
+        if server_id:
+            cmd.extend(["-s", server_id])
+        return cmd
+
+    async def _async_run_speedtest(
+        self, cmd: list[str]
+    ) -> subprocess.CompletedProcess[str]:
+        """Run speedtest in the executor."""
+        return await self.hass.async_add_executor_job(
+            lambda: subprocess.run(cmd, capture_output=True, text=True, check=True)
+        )
+
+    def _should_fallback_to_closest(
+        self, error: subprocess.CalledProcessError, server_id: str | None
+    ) -> bool:
+        """Return true when a configured server is unavailable."""
+        if not self.fallback_to_closest or not server_id:
+            return False
+
+        error_msg = error.stderr or error.stdout or ""
+        return error.returncode == 2 and (
+            "NoServersException" in error_msg or "No servers defined" in error_msg
+        )
+
+    def _process_speedtest_result(self, result: dict[str, Any]) -> dict[str, Any]:
+        """Convert speedtest JSON output into coordinator data."""
+        data = {
+            # ping { jitter, latency, low, high}
+            ATTR_PING: round(result["ping"]["latency"], 2),
+            ATTR_JITTER: round(result["ping"]["jitter"], 2),
+            ATTR_PING_LOW: round(result["ping"]["low"], 2),
+            ATTR_PING_HIGH: round(result["ping"]["high"], 2),
+            # download { bandwidth, bytes, elapsed, latency { iqm, low, high, jitter }}
+            ATTR_DOWNLOAD: round(result["download"]["bandwidth"] * 8 / 1000000, 2),
+            ATTR_DOWNLOAD_LATENCY_IQM: round(result["download"]["latency"]["iqm"], 2),
+            ATTR_DOWNLOAD_LATENCY_LOW: round(result["download"]["latency"]["low"], 2),
+            ATTR_DOWNLOAD_LATENCY_HIGH: round(result["download"]["latency"]["high"], 2),
+            ATTR_DOWNLOAD_LATENCY_JITTER: round(result["download"]["latency"]["jitter"], 2),
+            # upload { bandwidth, bytes, elapsed, latency { iqm, low, high, jitter }}
+            ATTR_UPLOAD: round(result["upload"]["bandwidth"] * 8 / 1000000, 2),
+            ATTR_UPLOAD_LATENCY_IQM: round(result["upload"]["latency"]["iqm"], 2),
+            ATTR_UPLOAD_LATENCY_LOW: round(result["upload"]["latency"]["low"], 2),
+            ATTR_UPLOAD_LATENCY_HIGH: round(result["upload"]["latency"]["high"], 2),
+            ATTR_UPLOAD_LATENCY_JITTER: round(result["upload"]["latency"]["jitter"], 2),
+            # isp
+            ATTR_ISP: result["isp"],
+            # interface { internalIp, name, macAddr, isVpn, externalIp }
+            # server { id, host, port, name, location, country, ip }
+            ATTR_SERVER: (
+                # produces: Boost Mobile (Chicago, IL, United States)
+                f"{result['server']['name']} "
+                f"({result['server']['location']}, {result['server']['country']})"
+            ),
+            # result { id, url, persisted }
+            ATTR_RESULT_URL: result.get("result", {}).get("url", ""),
+            ATTR_DATE_LAST_TEST: dt_util.now(),
+        }
+
+        if self.isp_dl_speed and data[ATTR_DOWNLOAD] > 0:
+            data[ATTR_DL_PCT] = round(
+                (data[ATTR_DOWNLOAD] / self.isp_dl_speed) * 100, 1
+            )
+
+        if self.isp_ul_speed and data[ATTR_UPLOAD] > 0:
+            data[ATTR_UL_PCT] = round(
+                (data[ATTR_UPLOAD] / self.isp_ul_speed) * 100, 1
+            )
+
+        # Bufferbloat Calculation
+        # Calculate the increase in latency under load
+        ping_idle = data[ATTR_PING]
+        # Handle potential 0/None values if test failed partially
+        ping_dl = data.get(ATTR_DOWNLOAD_LATENCY_IQM, 0)
+        ping_ul = data.get(ATTR_UPLOAD_LATENCY_IQM, 0)
+
+        if ping_dl and ping_ul:
+            max_loaded = max(ping_dl, ping_ul)
+            # Ensure we don't get negative delta due to variance
+            delta = max(0, max_loaded - ping_idle)
+
+            if delta <= 30:
+                grade = "A"
+            elif delta <= 60:
+                grade = "B"
+            elif delta <= 120:
+                grade = "C"
+            elif delta <= 300:
+                grade = "D"
+            else:
+                grade = "F"
+
+            data[ATTR_BUFFERBLOAT_GRADE] = grade
+        else:
+            data[ATTR_BUFFERBLOAT_GRADE] = None
+
+        return data
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -307,6 +381,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     isp_ul_speed = entry.options.get(
         CONF_ISP_UL_SPEED, entry.data.get(CONF_ISP_UL_SPEED)
     )
+    fallback_to_closest = entry.options.get(
+        CONF_FALLBACK_TO_CLOSEST,
+        entry.data.get(CONF_FALLBACK_TO_CLOSEST, DEFAULT_FALLBACK_TO_CLOSEST),
+    )
 
     # Validate server_id during setup
     if not validate_server_id(server_id):
@@ -316,7 +394,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         server_id = "closest"
 
     coordinator = SpeedtestCoordinator(
-        hass, entry, server_id, scan_interval, manual, start_time, isp_dl_speed, isp_ul_speed
+        hass,
+        entry,
+        server_id,
+        scan_interval,
+        manual,
+        start_time,
+        isp_dl_speed,
+        isp_ul_speed,
+        fallback_to_closest,
     )
     hass.data[DOMAIN][entry.entry_id] = coordinator
 

@@ -14,6 +14,7 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_ENABLE_COMPLIANCE_SENSORS,
+    CONF_FALLBACK_TO_CLOSEST,
     CONF_ENABLE_LATENCY_SENSORS,
     CONF_ISP_DL_SPEED,
     CONF_ISP_UL_SPEED,
@@ -22,6 +23,7 @@ from .const import (
     CONF_SERVER_ID,
     CONF_START_TIME,
     DEFAULT_ENABLE_COMPLIANCE,
+    DEFAULT_FALLBACK_TO_CLOSEST,
     DEFAULT_ENABLE_LATENCY,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -98,6 +100,9 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_ENABLE_COMPLIANCE_SENSORS, default=DEFAULT_ENABLE_COMPLIANCE
                 ): bool,
+                vol.Optional(
+                    CONF_FALLBACK_TO_CLOSEST, default=DEFAULT_FALLBACK_TO_CLOSEST
+                ): bool,
             }
         )
 
@@ -160,6 +165,9 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             CONF_ENABLE_COMPLIANCE_SENSORS: user_input.get(
                 CONF_ENABLE_COMPLIANCE_SENSORS, DEFAULT_ENABLE_COMPLIANCE
+            ),
+            CONF_FALLBACK_TO_CLOSEST: user_input.get(
+                CONF_FALLBACK_TO_CLOSEST, DEFAULT_FALLBACK_TO_CLOSEST
             ),
         }
         return self.async_create_entry(
@@ -249,6 +257,12 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                 CONF_ENABLE_COMPLIANCE_SENSORS, DEFAULT_ENABLE_COMPLIANCE
             ),
         )
+        current_fallback_to_closest = self.config_entry.options.get(
+            CONF_FALLBACK_TO_CLOSEST,
+            self.config_entry.data.get(
+                CONF_FALLBACK_TO_CLOSEST, DEFAULT_FALLBACK_TO_CLOSEST
+            ),
+        )
 
         schema = vol.Schema(
             {
@@ -288,6 +302,10 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_ENABLE_COMPLIANCE_SENSORS,
                     default=current_enable_compliance,
+                ): bool,
+                vol.Optional(
+                    CONF_FALLBACK_TO_CLOSEST,
+                    default=current_fallback_to_closest,
                 ): bool,
             }
         )
@@ -356,6 +374,9 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                 ),
                 CONF_ENABLE_COMPLIANCE_SENSORS: user_input.get(
                     CONF_ENABLE_COMPLIANCE_SENSORS, DEFAULT_ENABLE_COMPLIANCE
+                ),
+                CONF_FALLBACK_TO_CLOSEST: user_input.get(
+                    CONF_FALLBACK_TO_CLOSEST, DEFAULT_FALLBACK_TO_CLOSEST
                 ),
             },
         )

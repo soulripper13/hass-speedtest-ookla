@@ -13,7 +13,8 @@
           "isp_dl_speed": "ISP Download Speed (Mbit/s)",
           "isp_ul_speed": "ISP Upload Speed (Mbit/s)",
           "enable_latency": "Enable Extended Latency Sensors",
-          "enable_compliance": "Enable Stability & Compliance Sensors"
+          "enable_compliance": "Enable Stability & Compliance Sensors",
+          "fallback_to_closest": "Fall Back to Closest Server"
         },
         "data_description": {
           "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers by distance.",
@@ -24,7 +25,8 @@
           "isp_dl_speed": "Optional: Your rated download speed from your ISP. Used to calculate 'Plan Compliance %'.",
           "isp_ul_speed": "Optional: Your rated upload speed from your ISP. Used to calculate 'Plan Compliance %'.",
           "enable_latency": "If enabled, creates additional sensors for detailed latency stats (min/max/iqm) for Ping, Download, and Upload.",
-          "enable_compliance": "If enabled, creates sensors for Plan Compliance % (requires ISP speeds above) and Jitter stats."
+          "enable_compliance": "If enabled, creates sensors for Plan Compliance % (requires ISP speeds above) and Jitter stats.",
+          "fallback_to_closest": "When enabled with a specific server, each test tries that server first. If Ookla reports it unavailable, the test retries using the closest server."
         }
       }
     },
@@ -50,7 +52,8 @@
           "isp_dl_speed": "ISP Download Speed (Mbit/s)",
           "isp_ul_speed": "ISP Upload Speed (Mbit/s)",
           "enable_latency": "Enable Extended Latency Sensors",
-          "enable_compliance": "Enable Stability & Compliance Sensors"
+          "enable_compliance": "Enable Stability & Compliance Sensors",
+          "fallback_to_closest": "Fall Back to Closest Server"
         },
         "data_description": {
           "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers by distance.",
@@ -61,7 +64,8 @@
           "isp_dl_speed": "Optional: Your rated download speed from your ISP. Used to calculate 'Plan Compliance %'.",
           "isp_ul_speed": "Optional: Your rated upload speed from your ISP. Used to calculate 'Plan Compliance %'.",
           "enable_latency": "If enabled, creates additional sensors for detailed latency stats (min/max/iqm) for Ping, Download, and Upload.",
-          "enable_compliance": "If enabled, creates sensors for Plan Compliance % (requires ISP speeds above) and Jitter stats."
+          "enable_compliance": "If enabled, creates sensors for Plan Compliance % (requires ISP speeds above) and Jitter stats.",
+          "fallback_to_closest": "When enabled with a specific server, each test tries that server first. If Ookla reports it unavailable, the test retries using the closest server."
         }
       }
     },

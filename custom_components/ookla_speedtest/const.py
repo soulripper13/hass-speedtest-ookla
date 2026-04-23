@@ -11,10 +11,12 @@ CONF_ISP_DL_SPEED = "isp_dl_speed"
 CONF_ISP_UL_SPEED = "isp_ul_speed"
 CONF_ENABLE_LATENCY_SENSORS = "enable_latency"
 CONF_ENABLE_COMPLIANCE_SENSORS = "enable_compliance"
+CONF_FALLBACK_TO_CLOSEST = "fallback_to_closest"
 
 DEFAULT_SCAN_INTERVAL = 1440  # minutes (24 hours)
 DEFAULT_ENABLE_LATENCY = False
 DEFAULT_ENABLE_COMPLIANCE = False
+DEFAULT_FALLBACK_TO_CLOSEST = False
 STARTUP_DELAY = 60  # seconds - delay before first speedtest in interval mode
 
 # Service

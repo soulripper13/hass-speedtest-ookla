@@ -34,6 +34,7 @@ It provides sensors for latency, download speed, upload speed, jitter, ISP infor
 - Automatically select the closest server
 - Choose from the 10 nearest servers
 - Manually specify a server ID
+- Optional fallback to closest server if a specified server is temporarily unavailable
 - **Precise Scheduling**: Run tests at a specific time (e.g., "every hour on the hour")
 - Automatic testing at a configurable interval
 - Manual-only mode for on-demand testing
@@ -109,6 +110,12 @@ All configuration is handled through the Home Assistant UI.
 
 #### **Manual Server ID**
 - Required only when manual mode is selected
+
+#### **Fall Back to Closest Server**
+- Optional
+- Only applies when using a specific server ID
+- Each test still tries the configured server first
+- If Ookla reports that server unavailable, the integration retries with the closest server for that run
 
 #### **Manual Mode**
 - **Enabled**: Tests run only when triggered manually
@@ -327,4 +334,3 @@ Thank you for being part of the Home Assistant community.
 ## License
 
 MIT License
-

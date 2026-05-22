@@ -1,25 +1,21 @@
 # Ookla Speedtest Integration for Home Assistant
-[![HACS Default](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)
-[![GitHub Release](https://img.shields.io/github/release/soulripper13/hass-speedtest-ookla.svg?style=for-the-badge)
-[![GitHub Issues](https://img.shields.io/github/issues/soulripper13/hass-speedtest-ookla.svg?style=for-the-badge)
+
+[![HACS Default](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/default)
+[![GitHub Release](https://img.shields.io/github/release/soulripper13/hass-speedtest-ookla.svg?style=for-the-badge)](https://github.com/soulripper13/hass-speedtest-ookla/releases)
+[![GitHub Issues](https://img.shields.io/github/issues/soulripper13/hass-speedtest-ookla.svg?style=for-the-badge)](https://github.com/soulripper13/hass-speedtest-ookla/issues)
 ![Downloads](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=Downloads&suffix=%20installs&cacheSeconds=15600&style=for-the-badge&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.ookla_speedtest.total)
-[![Support Development](https://img.shields.io/badge/Support-Development-FFDD00?style=for-the-badge&logo=paypal&logoColor=black)
-[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)
-[![Add Integration](https://my.home-assistant.io/badges/config_flow_start.svg)
-[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=soulripper13&repository=hass-speedtest-ookla&category=integration)
-[![Add Integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=ookla_speedtest)
-![Configuration Options](images/options-flow.png)
 [![Support Development](https://img.shields.io/badge/Support-Development-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/soulripper13)
 
 <div align="center">
-  <img src="https://dummyimage.com/800x60/0d1117/ffffff&text=Ookla%20Speedtest%20Integration%20for%20Home%20Assistant+-+-%20%2A%2APing%2A%2A%20%28ms%29%20%E2%80%93%20Network%20latency" alt="Hero Banner">
-  <br><br>
-  <strong>- **Ping** (ms) – Network latency</strong> 
-  <br><br> 
-  <img src="icon.png" alt="Logo" style="width: 100px; height: auto;">
-  <br><br>
-  <a href="https://ko-fi.com/soulripper13">
-    <img src="https://storage.ko-fi.com/cdn/kofi5.png?v=6" alt="Support Ookla Speedtest Integration for Home Assistant on Ko-fi" width="220">
+  <img src="icon.png" alt="Logo" width="120">
+  <h3>Ookla Speedtest for Home Assistant</h3>
+  <p>A comprehensive, local-first integration for monitoring your internet performance.</p>
+  
+  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=soulripper13&repository=hass-speedtest-ookla&category=integration">
+    <img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Open in HACS">
+  </a>
+  <a href="https://my.home-assistant.io/redirect/config_flow_start/?domain=ookla_speedtest">
+    <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Add Integration">
   </a>
 </div>
 

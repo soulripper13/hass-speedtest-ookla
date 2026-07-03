@@ -285,24 +285,30 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _process_speedtest_result(self, result: dict[str, Any]) -> dict[str, Any]:
         """Convert speedtest JSON output into coordinator data."""
+        ping = result["ping"]
+        download = result["download"]
+        upload = result["upload"]
+        download_latency = download.get("latency") or {}
+        upload_latency = upload.get("latency") or {}
+
         data = {
             # ping { jitter, latency, low, high}
-            ATTR_PING: round(result["ping"]["latency"], 2),
-            ATTR_JITTER: round(result["ping"]["jitter"], 2),
-            ATTR_PING_LOW: round(result["ping"]["low"], 2),
-            ATTR_PING_HIGH: round(result["ping"]["high"], 2),
+            ATTR_PING: round(ping["latency"], 2),
+            ATTR_JITTER: round(ping["jitter"], 2),
+            ATTR_PING_LOW: round(ping.get("low", 0), 2),
+            ATTR_PING_HIGH: round(ping.get("high", 0), 2),
             # download { bandwidth, bytes, elapsed, latency { iqm, low, high, jitter }}
-            ATTR_DOWNLOAD: round(result["download"]["bandwidth"] * 8 / 1000000, 2),
-            ATTR_DOWNLOAD_LATENCY_IQM: round(result["download"]["latency"]["iqm"], 2),
-            ATTR_DOWNLOAD_LATENCY_LOW: round(result["download"]["latency"]["low"], 2),
-            ATTR_DOWNLOAD_LATENCY_HIGH: round(result["download"]["latency"]["high"], 2),
-            ATTR_DOWNLOAD_LATENCY_JITTER: round(result["download"]["latency"]["jitter"], 2),
+            ATTR_DOWNLOAD: round(download["bandwidth"] * 8 / 1000000, 2),
+            ATTR_DOWNLOAD_LATENCY_IQM: round(download_latency.get("iqm", 0), 2),
+            ATTR_DOWNLOAD_LATENCY_LOW: round(download_latency.get("low", 0), 2),
+            ATTR_DOWNLOAD_LATENCY_HIGH: round(download_latency.get("high", 0), 2),
+            ATTR_DOWNLOAD_LATENCY_JITTER: round(download_latency.get("jitter", 0), 2),
             # upload { bandwidth, bytes, elapsed, latency { iqm, low, high, jitter }}
-            ATTR_UPLOAD: round(result["upload"]["bandwidth"] * 8 / 1000000, 2),
-            ATTR_UPLOAD_LATENCY_IQM: round(result["upload"]["latency"]["iqm"], 2),
-            ATTR_UPLOAD_LATENCY_LOW: round(result["upload"]["latency"]["low"], 2),
-            ATTR_UPLOAD_LATENCY_HIGH: round(result["upload"]["latency"]["high"], 2),
-            ATTR_UPLOAD_LATENCY_JITTER: round(result["upload"]["latency"]["jitter"], 2),
+            ATTR_UPLOAD: round(upload["bandwidth"] * 8 / 1000000, 2),
+            ATTR_UPLOAD_LATENCY_IQM: round(upload_latency.get("iqm", 0), 2),
+            ATTR_UPLOAD_LATENCY_LOW: round(upload_latency.get("low", 0), 2),
+            ATTR_UPLOAD_LATENCY_HIGH: round(upload_latency.get("high", 0), 2),
+            ATTR_UPLOAD_LATENCY_JITTER: round(upload_latency.get("jitter", 0), 2),
             # isp
             ATTR_ISP: result["isp"],
             # interface { internalIp, name, macAddr, isVpn, externalIp }

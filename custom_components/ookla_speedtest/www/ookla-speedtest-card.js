@@ -2,7 +2,7 @@
  * Ookla Speedtest Card for Home Assistant
  * A custom Lovelace card that recreates the iconic Ookla Speedtest interface
  *
- * Version: 1.5.0 - Theme-adaptive background using HA CSS variables
+ * Version: 3.0.5 - Theme-adaptive background using HA CSS variables
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
@@ -11,9 +11,12 @@
  * - Added cache busting support
  */
 
+import { applyCardAppearance, createAppearanceEditor } from './ookla-speedtest-card-utils.js?v=3.0.5';
+
 class OoklaSpeedtestCard extends HTMLElement {
   constructor() {
     super();
+    this.attachShadow({ mode: 'open' });
     this._config = {};
     this._hass = null;
     this._isRunning = false;
@@ -59,6 +62,7 @@ class OoklaSpeedtestCard extends HTMLElement {
       ...OoklaSpeedtestCard.getStubConfig(),
       ...config
     };
+    applyCardAppearance(this.shadowRoot, this._config);
   }
 
   set hass(hass) {
@@ -128,19 +132,19 @@ class OoklaSpeedtestCard extends HTMLElement {
     this._updateMetric('grade', grade, '');
 
     // Update header
-    const ispEl = this.querySelector('.isp-name');
-    const serverEl = this.querySelector('.server-name');
+    const ispEl = this.shadowRoot.querySelector('.isp-name');
+    const serverEl = this.shadowRoot.querySelector('.server-name');
     if (ispEl) ispEl.textContent = isp || 'Unknown ISP';
     if (serverEl) serverEl.textContent = server || 'Unknown Server';
 
     // Update footer
-    const lastTestEl = this.querySelector('.last-test');
+    const lastTestEl = this.shadowRoot.querySelector('.last-test');
     if (lastTestEl && lastTest) {
       lastTestEl.textContent = this._formatDate(lastTest);
     }
 
     // Update result link
-    const resultLink = this.querySelector('.result-link');
+    const resultLink = this.shadowRoot.querySelector('.result-link');
     if (resultLink) {
       if (resultUrl && resultUrl.startsWith('http')) {
         resultLink.href = resultUrl;
@@ -168,8 +172,8 @@ class OoklaSpeedtestCard extends HTMLElement {
   }
 
   _updateGauge(type, value, max) {
-    const gauge = this.querySelector(`.gauge-${type} .gauge-fill`);
-    const valueEl = this.querySelector(`.gauge-${type} .gauge-value`);
+    const gauge = this.shadowRoot.querySelector(`.gauge-${type} .gauge-fill`);
+    const valueEl = this.shadowRoot.querySelector(`.gauge-${type} .gauge-value`);
     
     if (!gauge || !valueEl) return;
 
@@ -193,7 +197,7 @@ class OoklaSpeedtestCard extends HTMLElement {
   }
 
   _updateMetric(type, value, unit) {
-    const el = this.querySelector(`.metric-${type} .metric-value`);
+    const el = this.shadowRoot.querySelector(`.metric-${type} .metric-value`);
     if (el) {
       let displayValue = value || '-';
       if (type === 'grade' && value) {
@@ -220,7 +224,7 @@ class OoklaSpeedtestCard extends HTMLElement {
     if (this._isRunning) return;
     
     this._isRunning = true;
-    const btn = this.querySelector('.go-button');
+    const btn = this.shadowRoot.querySelector('.go-button');
     if (btn) {
       btn.classList.add('running');
       btn.textContent = '...';
@@ -240,7 +244,7 @@ class OoklaSpeedtestCard extends HTMLElement {
   render() {
     const labels = this._config.labels || { download: 'Download', upload: 'Upload', ping: 'Ping', jitter: 'Jitter', grade: 'Grade' };
     
-    this.innerHTML = `
+    this.shadowRoot.innerHTML = `
       <style>
         :host {
           display: block;
@@ -259,9 +263,9 @@ class OoklaSpeedtestCard extends HTMLElement {
           background: var(--ha-card-background, var(--card-background-color, rgba(15, 23, 42, 0.6)));
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border-radius: 24px;
+          border-radius: var(--ha-card-border-radius, 12px);
           padding: 20px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+          box-shadow: var(--ha-card-box-shadow, none);
           border: 1px solid var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.08)));
           color: var(--primary-text-color, #f8fafc);
           position: relative;
@@ -429,7 +433,8 @@ class OoklaSpeedtestCard extends HTMLElement {
           height: 80px;
           border-radius: 50%;
           border: 4px solid rgba(255,255,255,0.1);
-          background: radial-gradient(circle at 30% 30%, #0ea5e9, #0284c7);
+          background: var(--ookla-accent-color, #0ea5e9);
+          background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--ookla-accent-color, #0ea5e9) 78%, white), var(--ookla-accent-color, #0ea5e9));
           color: white;
           font-size: 20px;
           font-weight: 900;
@@ -452,7 +457,8 @@ class OoklaSpeedtestCard extends HTMLElement {
             0 0 30px rgba(14, 165, 233, 0.6),
             inset 0 0 20px rgba(255,255,255,0.3),
             0 15px 25px rgba(0,0,0,0.4);
-          background: radial-gradient(circle at 30% 30%, #38bdf8, #0ea5e9);
+          background: var(--ookla-accent-color, #0ea5e9);
+          background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--ookla-accent-color, #0ea5e9) 72%, white), var(--ookla-accent-color, #0ea5e9));
         }
         
         .go-button:active {
@@ -551,7 +557,7 @@ class OoklaSpeedtestCard extends HTMLElement {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          color: #38bdf8;
+          color: var(--ookla-accent-color, #38bdf8);
           text-decoration: none;
           font-size: 12px;
           font-weight: 600;
@@ -603,7 +609,7 @@ class OoklaSpeedtestCard extends HTMLElement {
                 <!-- Defs for gradients -->
                 <defs>
                   <linearGradient id="grad-download" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:1" />
+                    <stop offset="0%" style="stop-color:var(--ookla-accent-color, #0ea5e9);stop-opacity:1" />
                     <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:1" />
                   </linearGradient>
                   <linearGradient id="grad-upload" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -664,20 +670,22 @@ class OoklaSpeedtestCard extends HTMLElement {
       </div>
     `;
 
+    applyCardAppearance(this.shadowRoot, this._config);
+
     // Add event listeners
-    const goBtn = this.querySelector('.go-button');
+    const goBtn = this.shadowRoot.querySelector('.go-button');
     if (goBtn) {
       goBtn.addEventListener('click', () => this._runSpeedtest());
     }
 
     // Interactive elements
     const entities = this._config.entities;
-    this.querySelector('.gauge-download')?.addEventListener('click', () => this._showMoreInfo(entities.download));
-    this.querySelector('.gauge-upload')?.addEventListener('click', () => this._showMoreInfo(entities.upload));
-    this.querySelector('.metric-ping')?.addEventListener('click', () => this._showMoreInfo(entities.ping));
-    this.querySelector('.metric-jitter')?.addEventListener('click', () => this._showMoreInfo(entities.jitter));
-    this.querySelector('.metric-grade')?.addEventListener('click', () => this._showMoreInfo(entities.grade));
-    this.querySelector('.last-test')?.addEventListener('click', () => this._showMoreInfo(entities.last_test));
+    this.shadowRoot.querySelector('.gauge-download')?.addEventListener('click', () => this._showMoreInfo(entities.download));
+    this.shadowRoot.querySelector('.gauge-upload')?.addEventListener('click', () => this._showMoreInfo(entities.upload));
+    this.shadowRoot.querySelector('.metric-ping')?.addEventListener('click', () => this._showMoreInfo(entities.ping));
+    this.shadowRoot.querySelector('.metric-jitter')?.addEventListener('click', () => this._showMoreInfo(entities.jitter));
+    this.shadowRoot.querySelector('.metric-grade')?.addEventListener('click', () => this._showMoreInfo(entities.grade));
+    this.shadowRoot.querySelector('.last-test')?.addEventListener('click', () => this._showMoreInfo(entities.last_test));
   }
 }
 
@@ -714,6 +722,7 @@ class OoklaSpeedtestCardEditor extends HTMLElement {
 
     const container = document.createElement('div');
     container.style.cssText = "display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;";
+    container.appendChild(createAppearanceEditor(this));
 
     // Gauge Settings Section
     const gaugeDiv = document.createElement('div');
@@ -841,4 +850,4 @@ window.customCards.push({
   documentationURL: "https://github.com/soulripper13/hass-speedtest-ookla"
 });
 
-console.info("%c OOKLA SPEEDTEST CARD %c v1.5.0 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST CARD %c v3.0.5 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

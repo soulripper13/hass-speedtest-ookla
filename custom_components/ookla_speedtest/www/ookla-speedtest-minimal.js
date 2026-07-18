@@ -2,7 +2,7 @@
  * Ookla Speedtest Card - Minimal Version
  * A clean, simple speedtest card with large typography
  *
- * Version: 1.5.0 - Theme-adaptive background using HA CSS variables
+ * Version: 3.0.5 - Theme-adaptive background using HA CSS variables
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
@@ -11,9 +11,12 @@
  * - Added cache busting support
  */
 
+import { applyCardAppearance, createAppearanceEditor } from './ookla-speedtest-card-utils.js?v=3.0.5';
+
 class OoklaSpeedtestMinimal extends HTMLElement {
   constructor() {
     super();
+    this.attachShadow({ mode: 'open' });
     this._config = {};
     this._hass = null;
   }
@@ -41,6 +44,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
 
   setConfig(config) {
     this._config = { ...OoklaSpeedtestMinimal.getStubConfig(), ...config };
+    applyCardAppearance(this.shadowRoot, this._config);
   }
 
   set hass(hass) {
@@ -91,10 +95,10 @@ class OoklaSpeedtestMinimal extends HTMLElement {
     const ping = this._getState(e.ping);
     const isp = this._getState(e.isp);
 
-    const dlEl = this.querySelector('.speed-download');
-    const ulEl = this.querySelector('.speed-upload');
-    const pingEl = this.querySelector('.ping-value');
-    const ispEl = this.querySelector('.isp-text');
+    const dlEl = this.shadowRoot.querySelector('.speed-download');
+    const ulEl = this.shadowRoot.querySelector('.speed-upload');
+    const pingEl = this.shadowRoot.querySelector('.ping-value');
+    const ispEl = this.shadowRoot.querySelector('.isp-text');
 
     if (dlEl) dlEl.textContent = download ? `${Math.round(download)} Mbps` : '--';
     if (ulEl) ulEl.textContent = upload ? `${Math.round(upload)} Mbps` : '--';
@@ -129,7 +133,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
   _runTest() {
     if (this._hass) {
       this._hass.callService('ookla_speedtest', 'run_speedtest');
-      const btn = this.querySelector('.test-btn');
+      const btn = this.shadowRoot.querySelector('.test-btn');
       if (btn) {
         btn.textContent = 'Testing...';
         setTimeout(() => btn.textContent = 'Run Speed Test', 3000);
@@ -140,7 +144,7 @@ class OoklaSpeedtestMinimal extends HTMLElement {
   render() {
     const labels = this._config.labels || { download: 'Download', upload: 'Upload', ping: 'Ping' };
     
-    this.innerHTML = `
+    this.shadowRoot.innerHTML = `
       <style>
         :host {
           display: block;
@@ -158,12 +162,12 @@ class OoklaSpeedtestMinimal extends HTMLElement {
           background: var(--ha-card-background, var(--card-background-color, rgba(15, 23, 42, 0.6)));
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border-radius: 24px;
+          border-radius: var(--ha-card-border-radius, 12px);
           padding: 20px;
           color: var(--primary-text-color, #f8fafc);
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           border: 1px solid var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.08)));
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: var(--ha-card-box-shadow, none);
           width: 100%;
           height: 100%;
           min-height: 0;
@@ -241,7 +245,8 @@ class OoklaSpeedtestMinimal extends HTMLElement {
           padding: 14px;
           border: none;
           border-radius: 16px;
-          background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+          background: var(--ookla-accent-color, #0ea5e9);
+          background: linear-gradient(135deg, var(--ookla-accent-color, #0ea5e9), color-mix(in srgb, var(--ookla-accent-color, #0ea5e9) 75%, black));
           color: white;
           font-size: 15px;
           font-weight: 700;
@@ -285,13 +290,15 @@ class OoklaSpeedtestMinimal extends HTMLElement {
       </div>
     `;
 
-    this.querySelector('.test-btn')?.addEventListener('click', () => this._runTest());
+    applyCardAppearance(this.shadowRoot, this._config);
+
+    this.shadowRoot.querySelector('.test-btn')?.addEventListener('click', () => this._runTest());
     
     // Interactive elements
     const e = this._config.entities;
-    this.querySelector('.speed-block-dl')?.addEventListener('click', () => this._showMoreInfo(e.download));
-    this.querySelector('.speed-block-ul')?.addEventListener('click', () => this._showMoreInfo(e.upload));
-    this.querySelector('.ping-row')?.addEventListener('click', () => this._showMoreInfo(e.ping));
+    this.shadowRoot.querySelector('.speed-block-dl')?.addEventListener('click', () => this._showMoreInfo(e.download));
+    this.shadowRoot.querySelector('.speed-block-ul')?.addEventListener('click', () => this._showMoreInfo(e.upload));
+    this.shadowRoot.querySelector('.ping-row')?.addEventListener('click', () => this._showMoreInfo(e.ping));
   }
 }
 
@@ -327,6 +334,7 @@ class OoklaSpeedtestMinimalEditor extends HTMLElement {
 
     const container = document.createElement('div');
     container.style.cssText = "display: flex; flex-direction: column; gap: 12px; padding: 10px;";
+    container.appendChild(createAppearanceEditor(this));
 
     // Labels Section
     const labelsDiv = document.createElement('div');
@@ -410,4 +418,4 @@ window.customCards.push({
   preview: true
 });
 
-console.info("%c OOKLA SPEEDTEST MINIMAL %c v1.5.0 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST MINIMAL %c v3.0.5 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

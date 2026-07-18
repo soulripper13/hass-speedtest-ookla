@@ -2,7 +2,7 @@
  * Ookla Speedtest Card - Simplified Version
  * Basic working version to test setup
  *
- * Version: 1.5.0 - Theme-adaptive background using HA CSS variables
+ * Version: 3.0.5 - Theme-adaptive background using HA CSS variables
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
@@ -11,9 +11,12 @@
  * - Added cache busting support
  */
 
+import { applyCardAppearance, createAppearanceEditor } from './ookla-speedtest-card-utils.js?v=3.0.5';
+
 class OoklaSpeedtestCardSimple extends HTMLElement {
   constructor() {
     super();
+    this.attachShadow({ mode: 'open' });
     this._config = {};
     this._hass = null;
   }
@@ -79,9 +82,9 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
     const upload = this._hass.states['sensor.ookla_speedtest_upload'];
     const ping = this._hass.states['sensor.ookla_speedtest_ping'];
     
-    const dlEl = this.querySelector('.dl');
-    const ulEl = this.querySelector('.ul');
-    const pingEl = this.querySelector('.ping');
+    const dlEl = this.shadowRoot.querySelector('.dl');
+    const ulEl = this.shadowRoot.querySelector('.ul');
+    const pingEl = this.shadowRoot.querySelector('.ping');
     
     if (dlEl) dlEl.textContent = download ? download.state + ' Mbps' : '--';
     if (ulEl) ulEl.textContent = upload ? upload.state + ' Mbps' : '--';
@@ -89,7 +92,7 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
   }
 
   render() {
-    this.innerHTML = `
+    this.shadowRoot.innerHTML = `
       <style>
         :host {
           display: block;
@@ -109,10 +112,10 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
           -webkit-backdrop-filter: blur(20px);
           color: var(--primary-text-color, #f8fafc);
           padding: 16px;
-          border-radius: 24px;
+          border-radius: var(--ha-card-border-radius, 12px);
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           border: 1px solid var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.08)));
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: var(--ha-card-box-shadow, none);
           width: 100%;
           height: 100%;
           min-height: 0;
@@ -131,7 +134,8 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
           gap: 10px;
         }
         .btn { 
-          background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+          background: var(--ookla-accent-color, #0ea5e9);
+          background: linear-gradient(135deg, var(--ookla-accent-color, #0ea5e9), color-mix(in srgb, var(--ookla-accent-color, #0ea5e9) 75%, black));
           color: white; 
           border: none; 
           padding: 12px 30px; 
@@ -153,8 +157,10 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
         <button class="btn">GO</button>
       </div>
     `;
+
+    applyCardAppearance(this.shadowRoot, this._config);
     
-    const btn = this.querySelector('.btn');
+    const btn = this.shadowRoot.querySelector('.btn');
     if (btn) {
       btn.addEventListener('click', () => {
         if (this._hass) {
@@ -199,6 +205,7 @@ class OoklaSpeedtestCardSimpleEditor extends HTMLElement {
 
     const container = document.createElement('div');
     container.style.cssText = "display: flex; flex-direction: column; gap: 12px; padding: 10px;";
+    container.appendChild(createAppearanceEditor(this));
 
     const entitiesDiv = document.createElement('div');
     entitiesDiv.style.cssText = "border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; padding: 10px; background: var(--card-background-color, rgba(0,0,0,0.2));";
@@ -247,4 +254,4 @@ window.customCards.push({
   description: "Simplified test version"
 });
 
-console.info("%c OOKLA SPEEDTEST SIMPLE %c v1.5.0 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST SIMPLE %c v3.0.5 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

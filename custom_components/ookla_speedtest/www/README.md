@@ -127,7 +127,25 @@ entities:
   last_test: sensor.ookla_speedtest_last_test
   result_url: sensor.ookla_speedtest_result_url
 show_charts: true
-chart_points: 20
+history_hours: 168
+chart_points: 100
+chart_height: 70
+chart_stroke_width: 2
+chart_line_style: solid
+chart_line_cap: round
+chart_include_zero: false
+chart_show_area: true
+chart_area_opacity: 0.25
+chart_show_points: false
+chart_point_radius: 0.75
+chart_colors:
+  download: "#0ea5e9"
+  upload: "#7c3aed"
+  ping: "#f59e0b"
+chart_area_colors:
+  download: "#0ea5e9"
+  upload: "#7c3aed"
+  ping: "#f59e0b"
 ```
 
 **Features:**
@@ -149,6 +167,41 @@ chart_points: 20
 | `entities.upload` | string | `sensor.ookla_speedtest_upload` | Upload speed entity |
 | `entities.ping` | string | `sensor.ookla_speedtest_ping` | Ping entity |
 
+### Card Appearance (All Cards)
+
+Appearance values can be configured visually or under the shared `appearance` block. Leave an option unset to inherit it from the active Home Assistant theme.
+
+```yaml
+appearance:
+  shadow: subtle
+  shadow_color: "#000000"
+  # custom_shadow: "0 8px 24px rgba(0, 0, 0, 0.2)"
+  background_color: "rgba(20, 24, 32, 0.92)"
+  border_color: "rgba(255, 255, 255, 0.12)"
+  border_width: 1
+  border_radius: 12
+  backdrop_blur: 16
+  padding: 16
+  text_color: "#f8fafc"
+  accent_color: "#0ea5e9"
+  font_family: "var(--primary-font-family)"
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `appearance.shadow` | string | `theme` | `theme`, `none`, `subtle`, `medium`, or `strong` |
+| `appearance.shadow_color` | color | preset default | Color used by the subtle, medium, and strong shadow presets |
+| `appearance.custom_shadow` | string | unset | Custom CSS `box-shadow`; overrides a preset |
+| `appearance.background_color` | color | theme | Card background color, including RGB/HSL with alpha |
+| `appearance.border_color` | color | theme | Card border color |
+| `appearance.border_width` | number | theme | Border width in pixels (0-10) |
+| `appearance.border_radius` | number | theme | Corner radius in pixels (0-64) |
+| `appearance.backdrop_blur` | number | card default | Backdrop blur in pixels (0-60) |
+| `appearance.padding` | number | card default | Inner card padding in pixels (0-64) |
+| `appearance.text_color` | color | theme | Primary card text color |
+| `appearance.accent_color` | color | card default | Buttons, links, and primary action accents |
+| `appearance.font_family` | string | theme | CSS font-family value |
+
 ### Main Card Options
 
 | Option | Type | Default | Description |
@@ -161,7 +214,23 @@ chart_points: 20
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `show_charts` | boolean | `true` | Show/hide sparkline charts |
-| `chart_points` | number | `20` | Number of data points to show |
+| `history_hours` | number | `168` | Hours of recorder history shown in charts |
+| `chart_points` | number | `100` | Maximum sampled points per series (2-500) |
+| `chart_height` | number | `70` | Height of each chart in pixels (30-200) |
+| `chart_stroke_width` | number | `2` | Chart line width in screen pixels (0.5-10) |
+| `chart_line_style` | string | `solid` | Line style: `solid`, `dashed`, or `dotted` |
+| `chart_line_cap` | string | `round` | Line ends: `round`, `butt`, or `square` |
+| `chart_include_zero` | boolean | `false` | Include zero in the vertical scale |
+| `chart_show_area` | boolean | `true` | Show/hide the shaded area below each line |
+| `chart_area_opacity` | number | `0.25` | Shaded area opacity (0-1) |
+| `chart_show_points` | boolean | `false` | Show a marker for each sampled data point |
+| `chart_point_radius` | number | `0.75` | Data-point marker radius (0.25-4) |
+| `chart_colors.download` | color | `#0ea5e9` | Download chart color |
+| `chart_colors.upload` | color | `#7c3aed` | Upload chart color |
+| `chart_colors.ping` | color | `#f59e0b` | Ping chart color |
+| `chart_area_colors.download` | color | `#0ea5e9` | Download area-fill color |
+| `chart_area_colors.upload` | color | `#7c3aed` | Upload area-fill color |
+| `chart_area_colors.ping` | color | `#f59e0b` | Ping area-fill color |
 
 ---
 

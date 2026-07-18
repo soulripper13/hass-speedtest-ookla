@@ -1,5 +1,6 @@
 """Manager for Lovelace card resources."""
 
+import json
 import logging
 import os
 import shutil
@@ -14,7 +15,9 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-VERSION = "2.3.7"
+VERSION = json.loads(
+    (Path(__file__).with_name("manifest.json")).read_text(encoding="utf-8")
+)["version"]
 
 # List of cards to manage
 CARDS = [
@@ -24,6 +27,8 @@ CARDS = [
     "ookla-speedtest-dashboard.js",
     "ookla-speedtest-card-simple.js",
 ]
+
+CARD_ASSETS = [*CARDS, "ookla-speedtest-card-utils.js"]
 
 WWW_SOURCE_DIR = Path(__file__).parent / "www"
 
@@ -48,7 +53,7 @@ async def async_setup_cards(hass: HomeAssistant) -> bool:
              await hass.async_add_executor_job(target_dir.mkdir)
         
         copied_count = 0
-        for card in CARDS:
+        for card in CARD_ASSETS:
             source = WWW_SOURCE_DIR / card
             target = target_dir / card
             

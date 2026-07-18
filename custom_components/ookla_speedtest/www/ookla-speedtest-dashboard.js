@@ -2,7 +2,7 @@
  * Ookla Speedtest Card - Dashboard Version
  * Full-featured dashboard card with configurable gauges and charts
  *
- * Version: 1.5.0 - Theme-adaptive background using HA CSS variables
+ * Version: 3.0.5 - Theme-adaptive background using HA CSS variables
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
@@ -11,9 +11,12 @@
  * - Added cache busting support
  */
 
+import { applyCardAppearance, createAppearanceEditor } from './ookla-speedtest-card-utils.js?v=3.0.5';
+
 class OoklaSpeedtestDashboard extends HTMLElement {
   constructor() {
     super();
+    this.attachShadow({ mode: 'open' });
     this._config = {};
     this._hass = null;
     this._history = { download: [], upload: [], ping: [] };
@@ -63,14 +66,39 @@ class OoklaSpeedtestDashboard extends HTMLElement {
       show_charts: true,
       history_hours: 168,  // 7 days (24 * 7)
       max_download: 1000,
-      max_upload: 500
+      max_upload: 500,
+      chart_points: 100,
+      chart_height: 70,
+      chart_stroke_width: 2,
+      chart_line_style: "solid",
+      chart_line_cap: "round",
+      chart_include_zero: false,
+      chart_show_area: true,
+      chart_area_opacity: 0.25,
+      chart_show_points: false,
+      chart_point_radius: 0.75,
+      chart_colors: {
+        download: "#0ea5e9",
+        upload: "#7c3aed",
+        ping: "#f59e0b"
+      },
+      chart_area_colors: {
+        download: "#0ea5e9",
+        upload: "#7c3aed",
+        ping: "#f59e0b"
+      }
     };
   }
 
   setConfig(config) {
     // Merge config but don't force stub defaults for entities
     const stubConfig = OoklaSpeedtestDashboard.getStubConfig();
-    this._config = { ...stubConfig, ...config };
+    this._config = {
+      ...stubConfig,
+      ...config,
+      chart_colors: { ...stubConfig.chart_colors, ...(config.chart_colors || {}) },
+      chart_area_colors: { ...stubConfig.chart_area_colors, ...(config.chart_area_colors || {}) }
+    };
 
     // Only use stub entities if user hasn't provided any entities at all
     if (!config.entities) {
@@ -79,6 +107,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
       // Use only the entities the user explicitly configured
       this._config.entities = config.entities;
     }
+    applyCardAppearance(this.shadowRoot, this._config);
   }
 
   set hass(hass) {
@@ -187,11 +216,12 @@ class OoklaSpeedtestDashboard extends HTMLElement {
 
         console.log('Processed history:', this._history);
 
-        // Sample data if too many points (keep max 100 points for smooth rendering)
+        // Sample recorder history to the configured chart density.
+        const maxPoints = Math.min(Math.max(Math.round(Number(this._config.chart_points) || 100), 2), 500);
         Object.keys(this._history).forEach(key => {
           const data = this._history[key];
-          if (data.length > 100) {
-            const step = Math.ceil(data.length / 100);
+          if (data.length > maxPoints) {
+            const step = Math.ceil(data.length / maxPoints);
             this._history[key] = data.filter((_, i) => i % step === 0);
           }
         });
@@ -244,7 +274,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
 
     // Grade with color
     const gradeVal = this._getState(e.grade);
-    const gradeEl = this.querySelector('.metric-grade .value');
+    const gradeEl = this.shadowRoot.querySelector('.metric-grade .value');
     if (gradeEl && gradeVal) {
       const colors = { 'A+': '#22c55e', 'A': '#22c55e', 'B': '#84cc16', 'C': '#eab308' };
       const color = colors[gradeVal] || '#ef4444';
@@ -262,7 +292,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
 
     optionalFields.forEach(field => {
       const entityId = e[field.key];
-      const el = this.querySelector(`.metric-${field.key.replace(/_/g, '-')}`);
+      const el = this.shadowRoot.querySelector(`.metric-${field.key.replace(/_/g, '-')}`);
       if (el) {
         const state = this._getState(entityId);
         const valueEl = el.querySelector('.value');
@@ -272,16 +302,16 @@ class OoklaSpeedtestDashboard extends HTMLElement {
     });
 
     // ISP and server
-    this.querySelector('.isp-name')?.setAttribute('data-text', this._getState(e.isp) || 'Unknown ISP');
-    this.querySelector('.server-name')?.setAttribute('data-text', this._getState(e.server) || 'Unknown Server');
+    this.shadowRoot.querySelector('.isp-name')?.setAttribute('data-text', this._getState(e.isp) || 'Unknown ISP');
+    this.shadowRoot.querySelector('.server-name')?.setAttribute('data-text', this._getState(e.server) || 'Unknown Server');
 
     // Last test
-    const lastTestEl = this.querySelector('.last-test');
+    const lastTestEl = this.shadowRoot.querySelector('.last-test');
     if (lastTestEl) lastTestEl.textContent = this._formatTime(this._getState(e.last_test));
 
     // Result link
     const resultUrl = this._getState(e.result_url);
-    const linkEl = this.querySelector('.result-link');
+    const linkEl = this.shadowRoot.querySelector('.result-link');
     if (linkEl) {
       if (resultUrl && resultUrl.startsWith('http')) {
         linkEl.href = resultUrl;
@@ -297,7 +327,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
   }
 
   _updateMetricValue(selector, entityId, suffix = '', round = false) {
-    const el = this.querySelector(selector + ' .value');
+    const el = this.shadowRoot.querySelector(selector + ' .value');
     if (!el) return;
     let val = this._getState(entityId);
     if (val !== null) {
@@ -309,8 +339,8 @@ class OoklaSpeedtestDashboard extends HTMLElement {
   }
 
   _updateGauge(type, value, max) {
-    const gauge = this.querySelector(`.gauge-${type} .gauge-fill`);
-    const valueEl = this.querySelector(`.gauge-${type} .gauge-value`);
+    const gauge = this.shadowRoot.querySelector(`.gauge-${type} .gauge-fill`);
+    const valueEl = this.shadowRoot.querySelector(`.gauge-${type} .gauge-value`);
 
     if (!gauge || !valueEl) return;
 
@@ -337,8 +367,9 @@ class OoklaSpeedtestDashboard extends HTMLElement {
     if (!this._config.show_charts) return;
 
     ['download', 'upload', 'ping'].forEach(type => {
-      const svg = this.querySelector(`.chart-${type} svg`);
+      const svg = this.shadowRoot.querySelector(`.chart-${type} svg`);
       if (!svg) return;
+      svg.style.height = `${Math.min(Math.max(Number(this._config.chart_height) || 70, 30), 200)}px`;
 
       const data = this._history[type] || [];
 
@@ -352,7 +383,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
       const chartData = data.length === 1 ? [data[0], data[0]] : data;
 
       const max = Math.max(...chartData, 1);
-      const min = Math.min(...chartData);
+      const min = this._config.chart_include_zero ? 0 : Math.min(...chartData);
       const range = max - min || 1;
       const width = 100;
       const height = 40;
@@ -366,20 +397,40 @@ class OoklaSpeedtestDashboard extends HTMLElement {
       const areaPoints = [[0, height], ...points, [width, height]].map(p => `${p[0]},${p[1]}`).join(' ');
       const linePoints = points.map(p => `${p[0]},${p[1]}`).join(' ');
 
-      const colors = { download: ['#0ea5e9', '#22d3ee'], upload: ['#7c3aed', '#a78bfa'], ping: ['#f59e0b', '#fbbf24'] };
-      const [stroke] = colors[type] || ['#ccc', '#eee'];
+      const stroke = this._chartColor(type, 'chart_colors');
+      const areaColor = this._chartColor(type, 'chart_area_colors');
+      const strokeWidth = Math.min(Math.max(Number(this._config.chart_stroke_width) || 2, 0.5), 10);
+      const areaOpacity = Math.min(Math.max(Number(this._config.chart_area_opacity) || 0, 0), 1);
+      const lineCap = ['butt', 'round', 'square'].includes(this._config.chart_line_cap) ? this._config.chart_line_cap : 'round';
+      const dashArrays = { solid: '', dashed: '6 4', dotted: '1 4' };
+      const dashArray = dashArrays[this._config.chart_line_style] ?? '';
+      const dashAttribute = dashArray ? ` stroke-dasharray="${dashArray}"` : '';
+      const area = this._config.chart_show_area === false ? '' :
+        `<polygon points="${areaPoints}" fill="url(#grad-${type})" />`;
+      const pointRadius = Math.min(Math.max(Number(this._config.chart_point_radius) || 0.75, 0.25), 4);
+      const pointMarkers = this._config.chart_show_points === true
+        ? points.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${pointRadius}" fill="${stroke}" />`).join('')
+        : '';
 
       svg.innerHTML = `
         <defs>
           <linearGradient id="grad-${type}" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:${stroke};stop-opacity:0.5" />
-            <stop offset="100%" style="stop-color:${stroke};stop-opacity:0" />
+            <stop offset="0%" style="stop-color:${areaColor};stop-opacity:${areaOpacity}" />
+            <stop offset="100%" style="stop-color:${areaColor};stop-opacity:0" />
           </linearGradient>
         </defs>
-        <polygon points="${areaPoints}" fill="url(#grad-${type})" />
-        <polyline points="${linePoints}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        ${area}
+        <polyline points="${linePoints}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" vector-effect="non-scaling-stroke" stroke-linecap="${lineCap}" stroke-linejoin="round"${dashAttribute}/>
+        ${pointMarkers}
       `;
     });
+  }
+
+  _chartColor(type, configKey) {
+    const defaults = { download: '#0ea5e9', upload: '#7c3aed', ping: '#f59e0b' };
+    const color = this._config[configKey]?.[type];
+    if (typeof color !== 'string' || /["'<>;&]/.test(color)) return defaults[type];
+    return globalThis.CSS?.supports?.('color', color) ? color : defaults[type];
   }
 
   _getState(entityId) {
@@ -411,7 +462,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
       const e = this._config.entities;
       const labels = this._config.labels || { download: 'Download', upload: 'Upload', ping: 'Ping', jitter: 'Jitter', grade: 'Grade' };
       
-      this.innerHTML = `
+      this.shadowRoot.innerHTML = `
         <style>
           :host {
             display: block;
@@ -429,12 +480,12 @@ class OoklaSpeedtestDashboard extends HTMLElement {
             background: var(--ha-card-background, var(--card-background-color, rgba(15, 23, 42, 0.6)));
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-radius: 24px;
+            border-radius: var(--ha-card-border-radius, 12px);
             padding: 12px;
             padding-left: max(12px, env(safe-area-inset-left));
             padding-right: max(12px, env(safe-area-inset-right));
             border: 1px solid var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.08)));
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--ha-card-box-shadow, none);
             color: var(--primary-text-color, #f8fafc);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             width: 100%;
@@ -608,7 +659,8 @@ class OoklaSpeedtestDashboard extends HTMLElement {
           .last-test { font-size: 11px; color: var(--secondary-text-color, #64748b); }
           .run-btn {
             padding: 6px 15px; border: none; border-radius: 20px;
-            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            background: var(--ookla-accent-color, #0ea5e9);
+            background: linear-gradient(135deg, var(--ookla-accent-color, #0ea5e9), color-mix(in srgb, var(--ookla-accent-color, #0ea5e9) 75%, black));
             color: white; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
             min-height: 32px;
             min-width: 80px;
@@ -619,7 +671,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
           .run-btn.running { background: #10b981; animation: pulse 1.5s infinite; }
           @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
           .result-link {
-            color: #38bdf8; text-decoration: none; font-size: 11px;
+            color: var(--ookla-accent-color, #38bdf8); text-decoration: none; font-size: 11px;
             min-height: 32px;
             display: inline-flex;
             align-items: center;
@@ -649,7 +701,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
           }
   
           @container (max-width: 400px) {
-            .card { padding: 12px; border-radius: 20px; }
+            .card { padding: 12px; }
             .header { margin-bottom: 10px; }
             .isp-name { font-size: 15px; }
             .server-name { font-size: 10px; }
@@ -677,7 +729,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
           }
   
           @container (max-width: 320px) {
-            .card { padding: 10px; border-radius: 16px; }
+            .card { padding: 10px; }
             .isp-name { font-size: 14px; }
             .server-name { font-size: 9px; }
             .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 5px; }
@@ -749,7 +801,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
             <svg class="gauge-svg" viewBox="0 0 200 200">
               <defs>
                 <linearGradient id="grad-download-dash" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:1" />
+                  <stop offset="0%" style="stop-color:var(--ookla-accent-color, #0ea5e9);stop-opacity:1" />
                   <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:1" />
                 </linearGradient>
               </defs>
@@ -798,6 +850,8 @@ class OoklaSpeedtestDashboard extends HTMLElement {
       </div>
     `;
 
+    applyCardAppearance(this.shadowRoot, this._config);
+
     // Event Listeners
     const clickMap = {
       '#m-dl': e.download, '#m-ul': e.upload, '#m-ping': e.ping, '#m-jitter': e.jitter, '#m-grade': e.grade,
@@ -807,7 +861,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
     };
 
     Object.entries(clickMap).forEach(([id, ent]) => {
-      const el = this.querySelector(id);
+      const el = this.shadowRoot.querySelector(id);
       if (!el) return;
       if (id === '#run') el.onclick = () => {
         this._hass.callService('ookla_speedtest', 'run_speedtest');
@@ -846,6 +900,7 @@ class OoklaSpeedtestDashboardEditor extends HTMLElement {
 
     const container = document.createElement('div');
     container.style.cssText = "display: flex; flex-direction: column; gap: 12px; padding: 10px; font-family: sans-serif;";
+    container.appendChild(createAppearanceEditor(this));
 
     // General Section
     const genDiv = document.createElement('div');
@@ -914,6 +969,109 @@ class OoklaSpeedtestDashboardEditor extends HTMLElement {
     historyOption.appendChild(historyInput);
     genDiv.appendChild(historyOption);
     container.appendChild(genDiv);
+
+    // Chart appearance section
+    const chartDiv = document.createElement('div');
+    chartDiv.style.cssText = "border: 1px solid var(--divider-color, #444); border-radius: 8px; padding: 10px; background: var(--card-background-color, #222);";
+    chartDiv.innerHTML = `<div style="font-weight: bold; margin-bottom: 10px; color: var(--primary-color, #0ea5e9); font-size: 13px; text-transform: uppercase;">Chart Appearance</div>`;
+
+    const createChartNumber = (key, label, defaultValue, min, max, step) => {
+      const option = document.createElement('div');
+      option.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;";
+      option.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">${label}</label>`;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.value = this._config[key] ?? defaultValue;
+      input.min = String(min);
+      input.max = String(max);
+      input.step = String(step);
+      input.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #444); background: var(--card-background-color, #111); color: var(--primary-text-color, #fff); width: 70px;";
+      input.addEventListener('change', (event) => this.configChanged({ ...this._config, [key]: Number(event.target.value) }));
+      option.appendChild(input);
+      return option;
+    };
+
+    chartDiv.appendChild(createChartNumber('chart_points', 'Maximum data points', 100, 2, 500, 1));
+    chartDiv.appendChild(createChartNumber('chart_height', 'Chart height (px)', 70, 30, 200, 5));
+    chartDiv.appendChild(createChartNumber('chart_stroke_width', 'Line width (px)', 2, 0.5, 10, 0.5));
+    chartDiv.appendChild(createChartNumber('chart_area_opacity', 'Area opacity', 0.25, 0, 1, 0.05));
+    chartDiv.appendChild(createChartNumber('chart_point_radius', 'Point radius', 0.75, 0.25, 4, 0.25));
+
+    const createChartSelect = (key, label, defaultValue, values) => {
+      const option = document.createElement('div');
+      option.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;";
+      option.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">${label}</label>`;
+      const select = document.createElement('select');
+      select.style.cssText = "padding: 6px; border-radius: 4px; border: 1px solid var(--divider-color, #444); background: var(--card-background-color, #111); color: var(--primary-text-color, #fff); width: 100px;";
+      values.forEach(value => {
+        const item = document.createElement('option');
+        item.value = value;
+        item.textContent = value[0].toUpperCase() + value.slice(1);
+        item.selected = value === (this._config[key] || defaultValue);
+        select.appendChild(item);
+      });
+      select.addEventListener('change', (event) => this.configChanged({ ...this._config, [key]: event.target.value }));
+      option.appendChild(select);
+      return option;
+    };
+
+    chartDiv.appendChild(createChartSelect('chart_line_style', 'Line style', 'solid', ['solid', 'dashed', 'dotted']));
+    chartDiv.appendChild(createChartSelect('chart_line_cap', 'Line caps', 'round', ['round', 'butt', 'square']));
+
+    const areaToggle = document.createElement('div');
+    areaToggle.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;";
+    areaToggle.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">Show chart area</label>`;
+    const areaCheckbox = document.createElement('input');
+    areaCheckbox.type = 'checkbox';
+    areaCheckbox.checked = this._config.chart_show_area !== false;
+    areaCheckbox.style.cssText = "width: 20px; height: 20px; cursor: pointer;";
+    areaCheckbox.addEventListener('change', (event) => this.configChanged({ ...this._config, chart_show_area: event.target.checked }));
+    areaToggle.appendChild(areaCheckbox);
+    chartDiv.appendChild(areaToggle);
+
+    const pointsToggle = document.createElement('div');
+    pointsToggle.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;";
+    pointsToggle.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">Show data points</label>`;
+    const pointsCheckbox = document.createElement('input');
+    pointsCheckbox.type = 'checkbox';
+    pointsCheckbox.checked = this._config.chart_show_points === true;
+    pointsCheckbox.style.cssText = "width: 20px; height: 20px; cursor: pointer;";
+    pointsCheckbox.addEventListener('change', (event) => this.configChanged({ ...this._config, chart_show_points: event.target.checked }));
+    pointsToggle.appendChild(pointsCheckbox);
+    chartDiv.appendChild(pointsToggle);
+
+    const zeroToggle = document.createElement('div');
+    zeroToggle.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;";
+    zeroToggle.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc);">Start vertical scale at zero</label>`;
+    const zeroCheckbox = document.createElement('input');
+    zeroCheckbox.type = 'checkbox';
+    zeroCheckbox.checked = this._config.chart_include_zero === true;
+    zeroCheckbox.style.cssText = "width: 20px; height: 20px; cursor: pointer;";
+    zeroCheckbox.addEventListener('change', (event) => this.configChanged({ ...this._config, chart_include_zero: event.target.checked }));
+    zeroToggle.appendChild(zeroCheckbox);
+    chartDiv.appendChild(zeroToggle);
+
+    const chartColors = { download: '#0ea5e9', upload: '#7c3aed', ping: '#f59e0b' };
+    const createChartColor = (configKey, key, defaultColor, label) => {
+      const option = document.createElement('div');
+      option.style.cssText = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;";
+      option.innerHTML = `<label style="font-size: 12px; color: var(--secondary-text-color, #ccc); text-transform: capitalize;">${key} ${label}</label>`;
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = this._config[configKey]?.[key] || defaultColor;
+      input.style.cssText = "width: 44px; height: 30px; padding: 2px; border: 1px solid var(--divider-color, #444); border-radius: 4px; background: transparent; cursor: pointer;";
+      input.addEventListener('change', (event) => this.configChanged({
+        ...this._config,
+        [configKey]: { ...(this._config[configKey] || {}), [key]: event.target.value }
+      }));
+      option.appendChild(input);
+      return option;
+    };
+    Object.entries(chartColors).forEach(([key, defaultColor]) => {
+      chartDiv.appendChild(createChartColor('chart_colors', key, defaultColor, 'line'));
+      chartDiv.appendChild(createChartColor('chart_area_colors', key, defaultColor, 'area'));
+    });
+    container.appendChild(chartDiv);
 
     // Labels Section
     const labelsDiv = document.createElement('div');
@@ -1018,4 +1176,4 @@ window.customCards.push({
   preview: true
 });
 
-console.info("%c OOKLA SPEEDTEST DASHBOARD %c v1.5.0 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA SPEEDTEST DASHBOARD %c v3.0.5 ", "background: #00d2ff; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

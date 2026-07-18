@@ -2,7 +2,7 @@
  * Ookla Speedtest Card - Compact Version (Bubble Style)
  * Minimalist pill-shaped card inspired by Bubble Card design
  *
- * Version: 1.5.0 - Theme-adaptive background using HA CSS variables
+ * Version: 3.0.5 - Theme-adaptive background using HA CSS variables
  *
  * Layout Compatibility:
  * - Masonry: Returns card size for proper column distribution
@@ -11,6 +11,8 @@
  * - Mobile-first, minimalist design
  * - Added cache busting support
  */
+
+import { applyCardAppearance, createAppearanceEditor } from './ookla-speedtest-card-utils.js?v=3.0.5';
 
 class OoklaSpeedtestCompact extends HTMLElement {
   constructor() {
@@ -42,6 +44,7 @@ class OoklaSpeedtestCompact extends HTMLElement {
 
   setConfig(config) {
     this._config = { ...OoklaSpeedtestCompact.getStubConfig(), ...config };
+    applyCardAppearance(this.shadowRoot, this._config);
   }
 
   set hass(hass) {
@@ -154,7 +157,7 @@ class OoklaSpeedtestCompact extends HTMLElement {
           background: var(--bubble-main-background-color, var(--ha-card-background, var(--card-background-color, rgba(255, 255, 255, 0.04))));
           backdrop-filter: blur(50px);
           -webkit-backdrop-filter: blur(50px);
-          border-radius: var(--bubble-border-radius, 12px);
+          border-radius: var(--bubble-border-radius, var(--ha-card-border-radius, 12px));
           padding: 4px 8px 4px 4px; /* Tighter padding */
           color: var(--primary-text-color, #f8fafc);
           font-family: var(--primary-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
@@ -164,7 +167,7 @@ class OoklaSpeedtestCompact extends HTMLElement {
           align-items: center;
           justify-content: flex-start;
           border: none;
-          box-shadow: var(--bubble-box-shadow, 0 2px 8px 0 rgba(0, 0, 0, 0.16));
+          box-shadow: var(--bubble-box-shadow, var(--ha-card-box-shadow, none));
           width: 100%;
           height: 100%;
           min-height: 50px;
@@ -269,7 +272,8 @@ class OoklaSpeedtestCompact extends HTMLElement {
           width: 38px;
           height: 38px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+          background: var(--ookla-accent-color, #0ea5e9);
+          background: linear-gradient(135deg, var(--ookla-accent-color, #0ea5e9), color-mix(in srgb, var(--ookla-accent-color, #0ea5e9) 75%, black));
           color: white;
           display: flex;
           align-items: center;
@@ -340,6 +344,8 @@ class OoklaSpeedtestCompact extends HTMLElement {
       </div>
     `;
 
+    applyCardAppearance(this.shadowRoot, this._config);
+
     this.shadowRoot.querySelector('.action-button')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this._runTest();
@@ -382,6 +388,7 @@ class OoklaSpeedtestCompactEditor extends HTMLElement {
 
     const container = document.createElement('div');
     container.style.cssText = "display: flex; flex-direction: column; gap: 12px; padding: 10px;";
+    container.appendChild(createAppearanceEditor(this));
 
     // Labels Section
     const labelsDiv = document.createElement('div');
@@ -456,4 +463,4 @@ window.customCards.push({
   preview: true
 });
 
-console.info("%c OOKLA COMPACT (BUBBLE) %c v1.5.0 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");
+console.info("%c OOKLA COMPACT (BUBBLE) %c v3.0.5 ", "background: #0ea5e9; color: #fff; font-weight: bold;", "background: #1e293b; color: #fff;");

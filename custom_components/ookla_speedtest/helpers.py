@@ -1,5 +1,6 @@
 """Helper functions for Ookla Speedtest integration."""
 
+import ipaddress
 import json
 import logging
 import subprocess
@@ -47,6 +48,18 @@ def validate_server_id(server_id: str | None) -> bool:
     if server_id == "closest":
         return True
     return server_id.isdigit()
+
+
+def validate_source_ip(source_ip: str | None) -> bool:
+    """Validate a source IP address."""
+    if not source_ip:
+        return True
+
+    try:
+        ipaddress.ip_address(source_ip)
+        return True
+    except ValueError:
+        return False
 
 
 async def get_speedtest_servers(hass: HomeAssistant) -> list[dict[str, Any]]:

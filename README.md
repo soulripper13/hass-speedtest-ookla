@@ -44,6 +44,8 @@
 - Choose from the 10 nearest servers
 - Manually specify a server ID
 - Optional fallback to closest server if a specified server is temporarily unavailable
+- Optional source interface binding for the speedtest CLI
+- Optional source IP binding for the speedtest CLI
 - **Precise Scheduling**: Run tests at a specific time (e.g., "every hour on the hour")
 - Automatic testing at a configurable interval
 - Manual-only mode for on-demand testing
@@ -111,6 +113,14 @@ All configuration is handled through the Home Assistant UI.
 - Only applies when using a specific server ID
 - Each test still tries the configured server first
 - If Ookla reports that server unavailable, the integration retries with the closest server for that run
+
+#### **Source Interface**
+- Optional
+- Bind the test command to a specific local network interface, such as `eth0` or `wlan0`
+
+#### **Source IP Address**
+- Optional
+- Bind the test command to a specific local source IP address, such as `192.168.1.10`
 
 #### **Manual Mode**
 - **Enabled**: Tests run only when triggered manually

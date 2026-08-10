@@ -5,6 +5,8 @@ DOMAIN = "ookla_speedtest"
 # Configuration
 CONF_SERVER_ID = "server_id"
 CONF_MANUAL = "manual"
+CONF_SOURCE_INTERFACE = "source_interface"
+CONF_SOURCE_IP = "source_ip"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_START_TIME = "start_time"
 CONF_ISP_DL_SPEED = "isp_dl_speed"

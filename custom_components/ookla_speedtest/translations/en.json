@@ -7,6 +7,8 @@
         "data": {
           "server_id": "Speedtest Server",
           "manual_server_id": "Manual Server ID",
+          "source_interface": "Source Interface",
+          "source_ip": "Source IP Address",
           "manual": "Manual Mode",
           "scan_interval": "Scan Interval",
           "start_time": "Start Time",
@@ -17,7 +19,7 @@
           "fallback_to_closest": "Fall Back to Closest Server"
         },
         "data_description": {
-          "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers by distance.",
+          "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
           "manual_server_id": "Enter a specific server ID number (only used if 'Manual Server ID' is selected above). Find server IDs at speedtest.net/servers.",
           "source_interface": "Optional: Bind tests to a specific network interface name, such as eth0 or wlan0. If not filled, the default route interface will be used.",
           "source_ip": "Optional: Bind tests to a specific local source IP address, such as 192.168.1.10. If not filled, the IP address of the default route interface will be used.",
@@ -34,7 +36,8 @@
     },
     "error": {
       "manual_server_id": "Please enter a valid numeric server ID",
-      "server_id": "Invalid server ID selected"
+      "server_id": "Invalid server ID selected",
+      "source_ip": "Please enter a valid IP address"
     },
     "abort": {
       "single_instance_allowed": "Only a single instance is allowed."
@@ -48,6 +51,8 @@
         "data": {
           "server_id": "Speedtest Server",
           "manual_server_id": "Manual Server ID",
+          "source_interface": "Source Interface",
+          "source_ip": "Source IP Address",
           "manual": "Manual Mode",
           "scan_interval": "Scan Interval",
           "start_time": "Start Time",
@@ -58,8 +63,10 @@
           "fallback_to_closest": "Fall Back to Closest Server"
         },
         "data_description": {
-          "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers by distance.",
+          "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
           "manual_server_id": "Enter a specific server ID number (only used if 'Manual Server ID' is selected above). Find server IDs at speedtest.net/servers.",
+          "source_interface": "Optional: Bind tests to a specific network interface name, such as eth0 or wlan0. If not filled, the default route interface will be used.",
+          "source_ip": "Optional: Bind tests to a specific local source IP address, such as 192.168.1.10. If not filled, the IP address of the default route interface will be used.",
           "manual": "When enabled, speed tests will only run when manually triggered via the 'run_speedtest' service. When disabled, tests run automatically based on the scan interval.",
           "scan_interval": "How often to automatically run speed tests. Default is 24 hours. Only applies when Manual Mode is disabled. Lower values will use more bandwidth.",
           "start_time": "Optional: Time to align the schedule (e.g., '14:00'). If set, the first test runs at this time, then every 'Scan Interval'. Useful for 'every hour on the hour' (Set 00:00 and interval 1 hour).",
@@ -73,7 +80,8 @@
     },
     "error": {
       "manual_server_id": "Please enter a valid numeric server ID",
-      "server_id": "Invalid server ID selected"
+      "server_id": "Invalid server ID selected",
+      "source_ip": "Please enter a valid IP address"
     }
   }
 }

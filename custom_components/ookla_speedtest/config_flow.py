@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 from typing import Any
 
 import voluptuous as vol
@@ -12,28 +11,31 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
+from .binary_manager import async_setup_speedtest
 from .const import (
     CONF_ENABLE_COMPLIANCE_SENSORS,
-    CONF_FALLBACK_TO_CLOSEST,
     CONF_ENABLE_LATENCY_SENSORS,
+    CONF_FALLBACK_TO_CLOSEST,
     CONF_ISP_DL_SPEED,
     CONF_ISP_UL_SPEED,
     CONF_MANUAL,
     CONF_SCAN_INTERVAL,
     CONF_SERVER_ID,
+    CONF_SOURCE_INTERFACE,
+    CONF_SOURCE_IP,
     CONF_START_TIME,
     DEFAULT_ENABLE_COMPLIANCE,
-    DEFAULT_FALLBACK_TO_CLOSEST,
     DEFAULT_ENABLE_LATENCY,
+    DEFAULT_FALLBACK_TO_CLOSEST,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
 from .helpers import (
     get_speedtest_servers,
     validate_server_id,
+    validate_source_ip,
     validate_time_format,
 )
-from .binary_manager import async_setup_speedtest
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,6 +87,8 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Optional("manual_server_id", default=""): str,
                 vol.Optional(CONF_MANUAL, default=True): bool,
+                vol.Optional(CONF_SOURCE_INTERFACE, default=""): str,
+                vol.Optional(CONF_SOURCE_IP, default=""): str,
                 vol.Required(
                     CONF_SCAN_INTERVAL,
                     default=self._minutes_to_duration(DEFAULT_SCAN_INTERVAL),
@@ -121,10 +125,20 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             scan_interval = scan_interval_input  # Should not happen with selector
 
         start_time = user_input.get(CONF_START_TIME)
+        source_interface = user_input.get(CONF_SOURCE_INTERFACE, "").strip() or None
+        source_ip = user_input.get(CONF_SOURCE_IP, "").strip() or None
 
         # Validate time format (selector should enforce, but safe to keep)
         if start_time and not validate_time_format(start_time):
             errors[CONF_START_TIME] = "Invalid time format"
+            return self.async_show_form(
+                step_id="user",
+                data_schema=schema,
+                errors=errors,
+            )
+
+        if source_ip and not validate_source_ip(source_ip):
+            errors[CONF_SOURCE_IP] = "Please enter a valid IP address"
             return self.async_show_form(
                 step_id="user",
                 data_schema=schema,
@@ -156,6 +170,8 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_data = {
             CONF_SERVER_ID: server_id,
             CONF_MANUAL: user_input[CONF_MANUAL],
+            CONF_SOURCE_INTERFACE: source_interface,
+            CONF_SOURCE_IP: source_ip,
             CONF_SCAN_INTERVAL: scan_interval,
             CONF_START_TIME: start_time,
             CONF_ISP_DL_SPEED: user_input.get(CONF_ISP_DL_SPEED),
@@ -229,6 +245,14 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
         current_manual = self.config_entry.options.get(
             CONF_MANUAL, self.config_entry.data.get(CONF_MANUAL, True)
         )
+        current_source_interface = self.config_entry.options.get(
+            CONF_SOURCE_INTERFACE,
+            self.config_entry.data.get(CONF_SOURCE_INTERFACE, ""),
+        )
+        current_source_ip = self.config_entry.options.get(
+            CONF_SOURCE_IP,
+            self.config_entry.data.get(CONF_SOURCE_IP, ""),
+        )
         current_scan_interval = self.config_entry.options.get(
             CONF_SCAN_INTERVAL,
             self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
@@ -275,6 +299,14 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                     CONF_MANUAL,
                     default=current_manual,
                 ): bool,
+                vol.Optional(
+                    CONF_SOURCE_INTERFACE,
+                    description={"suggested_value": current_source_interface},
+                ): str,
+                vol.Optional(
+                    CONF_SOURCE_IP,
+                    description={"suggested_value": current_source_ip},
+                ): str,
                 vol.Required(
                     CONF_SCAN_INTERVAL,
                     default=OoklaSpeedtestConfigFlow._minutes_to_duration(
@@ -327,10 +359,20 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
             scan_interval = scan_interval_input
 
         start_time = user_input.get(CONF_START_TIME)
+        source_interface = user_input.get(CONF_SOURCE_INTERFACE, "").strip() or None
+        source_ip = user_input.get(CONF_SOURCE_IP, "").strip() or None
 
         # Validate time format
         if start_time and not validate_time_format(start_time):
             errors[CONF_START_TIME] = "Invalid time format"
+            return self.async_show_form(
+                step_id="init",
+                data_schema=schema,
+                errors=errors,
+            )
+
+        if source_ip and not validate_source_ip(source_ip):
+            errors[CONF_SOURCE_IP] = "Please enter a valid IP address"
             return self.async_show_form(
                 step_id="init",
                 data_schema=schema,
@@ -365,6 +407,8 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
             data={
                 CONF_SERVER_ID: server_id,
                 CONF_MANUAL: user_input[CONF_MANUAL],
+                CONF_SOURCE_INTERFACE: source_interface,
+                CONF_SOURCE_IP: source_ip,
                 CONF_SCAN_INTERVAL: scan_interval,
                 CONF_START_TIME: start_time,
                 CONF_ISP_DL_SPEED: user_input.get(CONF_ISP_DL_SPEED),

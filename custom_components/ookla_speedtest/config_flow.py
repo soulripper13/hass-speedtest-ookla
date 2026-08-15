@@ -24,11 +24,13 @@ from .const import (
     CONF_SOURCE_INTERFACE,
     CONF_SOURCE_IP,
     CONF_START_TIME,
+    CONF_SURVEY_NOTIFICATION_VERSION,
     DEFAULT_ENABLE_COMPLIANCE,
     DEFAULT_ENABLE_LATENCY,
     DEFAULT_FALLBACK_TO_CLOSEST,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    SURVEY_NOTIFICATION_VERSION,
 )
 from .helpers import (
     get_speedtest_servers,
@@ -185,6 +187,8 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_FALLBACK_TO_CLOSEST: user_input.get(
                 CONF_FALLBACK_TO_CLOSEST, DEFAULT_FALLBACK_TO_CLOSEST
             ),
+            # New installations do not need an update announcement.
+            CONF_SURVEY_NOTIFICATION_VERSION: SURVEY_NOTIFICATION_VERSION,
         }
         return self.async_create_entry(
             title="Ookla Speedtest",

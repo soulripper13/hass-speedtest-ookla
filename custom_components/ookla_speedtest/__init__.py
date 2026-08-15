@@ -8,6 +8,7 @@ from typing import Any
 
 import voluptuous as vol
 
+from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_DEVICE_ID,
@@ -55,12 +56,16 @@ from .const import (
     CONF_SOURCE_IP,
     CONF_SERVER_ID,
     CONF_START_TIME,
+    CONF_SURVEY_NOTIFICATION_VERSION,
     DEFAULT_FALLBACK_TO_CLOSEST,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     SERVICE_RUN_SPEEDTEST,
     SPEEDTEST_BIN_PATH,
     STARTUP_DELAY,
+    SURVEY_NOTIFICATION_ID,
+    SURVEY_NOTIFICATION_VERSION,
+    SURVEY_URL,
 )
 from .binary_manager import async_setup_speedtest
 from .helpers import validate_server_id, validate_source_ip
@@ -89,6 +94,39 @@ RUN_SPEEDTEST_SCHEMA = vol.Schema(
         ),
     }
 )
+
+
+def _async_show_survey_notification(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Show the optional feedback survey once to existing installations."""
+    if (
+        entry.data.get(CONF_SURVEY_NOTIFICATION_VERSION)
+        == SURVEY_NOTIFICATION_VERSION
+    ):
+        return
+
+    persistent_notification.async_create(
+        hass,
+        title="Ookla Speedtest: help investigate lower download results",
+        message=(
+            "Some users with high-speed connections report lower download results "
+            "than expected. If you have experienced this, you can optionally "
+            "share feedback to help investigate the cause.\n\n"
+            f"[Share feedback]({SURVEY_URL})\n\n"
+            "No survey information is collected or sent automatically. Opening "
+            "the link and participating is entirely optional."
+        ),
+        notification_id=SURVEY_NOTIFICATION_ID,
+    )
+
+    hass.config_entries.async_update_entry(
+        entry,
+        data={
+            **entry.data,
+            CONF_SURVEY_NOTIFICATION_VERSION: SURVEY_NOTIFICATION_VERSION,
+        },
+    )
 
 
 async def async_setup_cards_and_resources(hass: HomeAssistant) -> None:
@@ -576,7 +614,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Copies cards to www folder and provides service for auto-registration
     await async_setup_cards_and_resources(hass)
 
-    # Register options update listener
+    _async_show_survey_notification(hass, entry)
+
+    # Register options update listener after storing the notification marker so
+    # that the internal config-entry update does not trigger a reload.
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True

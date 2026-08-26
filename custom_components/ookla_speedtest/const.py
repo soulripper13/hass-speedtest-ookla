@@ -24,8 +24,8 @@ STARTUP_DELAY = 60  # seconds - delay before first speedtest in interval mode
 
 # One-time feedback survey notification
 SURVEY_NOTIFICATION_ID = f"{DOMAIN}_speed_feedback_survey"
-SURVEY_NOTIFICATION_VERSION = 1
-SURVEY_URL = "https://github.com/soulripper13/hass-speedtest-ookla/discussions/33"
+SURVEY_NOTIFICATION_VERSION = 2
+SURVEY_URL = "https://github.com/soulripper13/hass-speedtest-ookla/discussions/34"
 
 # Service
 SERVICE_RUN_SPEEDTEST = "run_speedtest"

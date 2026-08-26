@@ -3,6 +3,7 @@
 import json
 import logging
 import subprocess
+import time
 from datetime import timedelta
 from typing import Any
 
@@ -108,14 +109,14 @@ def _async_show_survey_notification(
 
     persistent_notification.async_create(
         hass,
-        title="Ookla Speedtest: help investigate lower download results",
+        title="Ookla Speedtest 3.1.2: did multi-connection mode help?",
         message=(
-            "Some users with high-speed connections report lower download results "
-            "than expected. If you have experienced this, you can optionally "
-            "share feedback to help investigate the cause.\n\n"
-            f"[Share feedback]({SURVEY_URL})\n\n"
-            "No survey information is collected or sent automatically. Opening "
-            "the link and participating is entirely optional."
+            "Version 3.1.2 makes Ookla multi-connection mode explicit. Please run "
+            "the same test you normally use, compare it with a browser or app test "
+            "on the same server when possible, and record both results in the poll.\n\n"
+            f"[Answer the v3.1.2 follow-up poll]({SURVEY_URL})\n\n"
+            "No survey information is collected or sent automatically. "
+            "Participation is optional."
         ),
         notification_id=SURVEY_NOTIFICATION_ID,
     )
@@ -325,7 +326,16 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _build_speedtest_cmd(self, server_id: str | None) -> list[str]:
         """Build the speedtest command for an optional server ID."""
-        cmd = [SPEEDTEST_BIN_PATH, "--accept-license", "--accept-gdpr", "--format=json"]
+        # Keep multi-connection mode explicit.  It is Ookla's default, but
+        # making it part of the command avoids silently falling back to the
+        # much slower single-connection mode when CLI defaults change.
+        cmd = [
+            SPEEDTEST_BIN_PATH,
+            "--accept-license",
+            "--accept-gdpr",
+            "--format=json",
+            "--multi",
+        ]
         if self.source_interface:
             cmd.extend(["--interface", self.source_interface])
         if self.source_ip:
@@ -338,9 +348,24 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self, cmd: list[str]
     ) -> subprocess.CompletedProcess[str]:
         """Run speedtest in the executor."""
-        return await self.hass.async_add_executor_job(
-            lambda: subprocess.run(cmd, capture_output=True, text=True, check=True)
+        started = time.monotonic()
+        _LOGGER.debug("Starting Ookla speedtest: %s", " ".join(cmd))
+
+        def _run() -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+        process = await self.hass.async_add_executor_job(_run)
+        _LOGGER.debug(
+            "Ookla speedtest completed in %.1fs (stdout=%d bytes)",
+            time.monotonic() - started,
+            len(process.stdout),
         )
+        return process
 
     def _should_fallback_to_closest(
         self, error: subprocess.CalledProcessError, server_id: str | None

@@ -109,10 +109,10 @@ def _async_show_survey_notification(
 
     persistent_notification.async_create(
         hass,
-        title="Ookla Speedtest 3.1.2: did multi-connection mode help?",
+        title="Ookla Speedtest 3.1.2: share your results",
         message=(
-            "Version 3.1.2 makes Ookla multi-connection mode explicit. Please run "
-            "the same test you normally use, compare it with a browser or app test "
+            "Version 3.1.2 adds diagnostics and bufferbloat grading improvements. "
+            "Please run the same test you normally use, compare it with a browser or app test "
             "on the same server when possible, and record both results in the poll.\n\n"
             f"[Answer the v3.1.2 follow-up poll]({SURVEY_URL})\n\n"
             "No survey information is collected or sent automatically. "
@@ -326,16 +326,9 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _build_speedtest_cmd(self, server_id: str | None) -> list[str]:
         """Build the speedtest command for an optional server ID."""
-        # Keep multi-connection mode explicit.  It is Ookla's default, but
-        # making it part of the command avoids silently falling back to the
-        # much slower single-connection mode when CLI defaults change.
-        cmd = [
-            SPEEDTEST_BIN_PATH,
-            "--accept-license",
-            "--accept-gdpr",
-            "--format=json",
-            "--multi",
-        ]
+        # The bundled Ookla CLI (1.2.0) does not expose a multi-connection
+        # switch; its default connection strategy is used automatically.
+        cmd = [SPEEDTEST_BIN_PATH, "--accept-license", "--accept-gdpr", "--format=json"]
         if self.source_interface:
             cmd.extend(["--interface", self.source_interface])
         if self.source_ip:

@@ -1,7 +1,7 @@
 # v3.1.2
 
-This release makes multi-connection mode explicit for the Ookla CLI and adds
-timing diagnostics to help compare results across hosts and containers.
+This release adds timing diagnostics to help compare results across hosts and
+containers. The bundled Ookla CLI uses its built-in connection strategy.
 
 Configuration flow titles and descriptions are now available in German,
 Spanish, French, Italian, and Dutch (with Home Assistant falling back to
@@ -12,10 +12,10 @@ after upgrading so we can verify whether the change improves download and upload
 
 ## Highlights
 
-- Explicitly passes `--multi` to the bundled Ookla CLI.
 - Logs test duration and command details at debug level.
 - Existing installations receive a one-time notification linking to the follow-up poll.
 - Bufferbloat grading now includes `A+` (0-5 ms), `E` (301-600 ms), and `F` (>600 ms).
+- Corrected an incompatible CLI option that prevented tests from running.
 
 # v3.1.1
 

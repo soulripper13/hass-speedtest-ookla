@@ -3,6 +3,10 @@
 This release makes multi-connection mode explicit for the Ookla CLI and adds
 timing diagnostics to help compare results across hosts and containers.
 
+Configuration flow titles and descriptions are now available in German,
+Spanish, French, Italian, and Dutch (with Home Assistant falling back to
+English for any untranslated field).
+
 Please answer the [v3.1.2 follow-up poll](https://github.com/soulripper13/hass-speedtest-ookla/discussions/37)
 after upgrading so we can verify whether the change improves download and upload results.
 
@@ -11,6 +15,7 @@ after upgrading so we can verify whether the change improves download and upload
 - Explicitly passes `--multi` to the bundled Ookla CLI.
 - Logs test duration and command details at debug level.
 - Existing installations receive a one-time notification linking to the follow-up poll.
+- Bufferbloat grading now includes `A+` (0-5 ms), `E` (301-600 ms), and `F` (>600 ms).
 
 # v3.1.1
 

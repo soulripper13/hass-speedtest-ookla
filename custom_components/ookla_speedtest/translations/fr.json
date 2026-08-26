@@ -1,0 +1,4 @@
+{
+  "config": {"step": {"user": {"title": "Configurer Ookla Speedtest", "description": "Configurez l’intégration Ookla Speedtest pour surveiller la vitesse de votre connexion Internet."}}},
+  "options": {"step": {"init": {"title": "Options d’Ookla Speedtest", "description": "Mettez à jour la configuration. Les modifications rechargeront l’intégration."}}}
+}

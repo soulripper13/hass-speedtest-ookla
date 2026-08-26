@@ -33,7 +33,7 @@
 - **Download** (Mbit/s)
 - **Upload** (Mbit/s)
 - **Jitter** (ms) – Network stability
-- **Bufferbloat Grade** – Latency stability rating (A-F)
+- **Bufferbloat Grade** – Latency stability rating (A+ to F)
 - **Download/Upload Plan Compliance** (%) – Speed vs. ISP rated plan
 - **Last Test** – Timestamp of the last successful test
 - **Server** – Name and location of the test server
@@ -162,6 +162,10 @@ The integration creates a comprehensive set of sensors. Some are enabled by defa
 - `sensor.ookla_speedtest_server`
 - `sensor.ookla_speedtest_last_test`
 - `sensor.ookla_speedtest_result_url`
+
+Bufferbloat grades are based on the additional latency under load: **A+** (0-5 ms),
+**A** (6-30 ms), **B** (31-60 ms), **C** (61-120 ms), **D** (121-300 ms),
+**E** (301-600 ms), and **F** (over 600 ms).
 
 #### **Extended Metrics (Disabled by Default)**
 *Go to Integration Settings → Entities to enable these.*

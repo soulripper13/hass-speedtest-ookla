@@ -441,7 +441,9 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Ensure we don't get negative delta due to variance
             delta = max(0, max_loaded - ping_idle)
 
-            if delta <= 30:
+            if delta <= 5:
+                grade = "A+"
+            elif delta <= 30:
                 grade = "A"
             elif delta <= 60:
                 grade = "B"
@@ -449,6 +451,8 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 grade = "C"
             elif delta <= 300:
                 grade = "D"
+            elif delta <= 600:
+                grade = "E"
             else:
                 grade = "F"
 

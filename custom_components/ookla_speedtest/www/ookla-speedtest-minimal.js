@@ -100,16 +100,20 @@ class OoklaSpeedtestMinimal extends HTMLElement {
     const pingEl = this.shadowRoot.querySelector('.ping-value');
     const ispEl = this.shadowRoot.querySelector('.isp-text');
 
-    if (dlEl) dlEl.textContent = download ? `${Math.round(download)} Mbps` : '--';
-    if (ulEl) ulEl.textContent = upload ? `${Math.round(upload)} Mbps` : '--';
-    if (pingEl) pingEl.textContent = ping ? `${Math.round(ping)} ms` : '--';
-    if (ispEl) ispEl.textContent = isp || 'Unknown ISP';
+    const dlValid = typeof download === 'number' && !isNaN(download);
+    const ulValid = typeof upload === 'number' && !isNaN(upload);
+    const pingValid = typeof ping === 'number' && !isNaN(ping);
+
+    if (dlEl) dlEl.textContent = dlValid ? `${Math.round(download)} Mbps` : '--';
+    if (ulEl) ulEl.textContent = ulValid ? `${Math.round(upload)} Mbps` : '--';
+    if (pingEl) pingEl.textContent = pingValid ? `${Math.round(ping)} ms` : '--';
+    if (ispEl) ispEl.textContent = (isp && isp !== 'unknown' && isp !== 'unavailable') ? isp : 'Unknown ISP';
 
     // Color coding
-    if (dlEl && download) {
+    if (dlEl && dlValid) {
       dlEl.style.color = download > 100 ? '#38bdf8' : download > 50 ? '#fbbf24' : '#ef4444';
     }
-    if (ulEl && upload) {
+    if (ulEl && ulValid) {
       ulEl.style.color = upload > 50 ? '#a78bfa' : upload > 20 ? '#fbbf24' : '#ef4444';
     }
   }
@@ -117,7 +121,9 @@ class OoklaSpeedtestMinimal extends HTMLElement {
   _getState(entityId) {
     if (!this._hass || !entityId) return null;
     const state = this._hass.states[entityId];
-    return state ? parseFloat(state.state) || state.state : null;
+    if (!state || state.state === 'unknown' || state.state === 'unavailable') return null;
+    const num = parseFloat(state.state);
+    return !isNaN(num) ? num : state.state;
   }
   
   _showMoreInfo(entityId) {

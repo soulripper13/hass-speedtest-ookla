@@ -139,8 +139,8 @@ class OoklaSpeedtestCard extends HTMLElement {
 
     // Update footer
     const lastTestEl = this.shadowRoot.querySelector('.last-test');
-    if (lastTestEl && lastTest) {
-      lastTestEl.textContent = this._formatDate(lastTest);
+    if (lastTestEl) {
+      lastTestEl.textContent = lastTest ? this._formatDate(lastTest) : 'Never';
     }
 
     // Update result link
@@ -158,7 +158,8 @@ class OoklaSpeedtestCard extends HTMLElement {
   _getState(entityId) {
     if (!this._hass || !entityId) return null;
     const state = this._hass.states[entityId];
-    return state ? state.state : null;
+    if (!state || state.state === 'unknown' || state.state === 'unavailable') return null;
+    return state.state;
   }
   
   _showMoreInfo(entityId) {

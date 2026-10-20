@@ -6,17 +6,26 @@ import logging
 from typing import Any
 
 from homeassistant.components.sensor import (
+    RestoreSensor,
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, Platform, UnitOfDataRate, UnitOfTime
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+    PERCENTAGE,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+    Platform,
+    UnitOfDataRate,
+    UnitOfTime,
+)
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity_registry import RegistryEntryDisabler, async_get
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from . import SpeedtestCoordinator
 from .const import (
@@ -281,7 +290,7 @@ async def async_setup_entry(
     async_add_entities(sensors, update_before_add=False)
 
 
-class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], SensorEntity):
+class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], RestoreSensor):
     """Representation of a Speedtest sensor."""
 
     _attr_has_entity_name = True
@@ -305,6 +314,7 @@ class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], SensorEntity
         self._attr_native_unit_of_measurement = unit
         self._attr_icon = icon
         self._attr_entity_registry_enabled_default = enabled_default
+        self._restored_value: Any = None
 
         # Set state class for numeric sensors to enable statistics
         if key in (
@@ -334,6 +344,44 @@ class OoklaSpeedtestSensor(CoordinatorEntity[SpeedtestCoordinator], SensorEntity
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        if self.coordinator.data is None:
+        if self.coordinator.data is not None and self._key in self.coordinator.data:
+            return self.coordinator.data[self._key]
+        return self._restored_value
+
+    def _parse_restored_state(self, state_str: str) -> Any:
+        """Parse restored state from raw state string."""
+        if self._key == ATTR_DATE_LAST_TEST:
+            return dt_util.parse_datetime(state_str)
+        if self._key in (
+            ATTR_BUFFERBLOAT_GRADE,
+            ATTR_SERVER,
+            ATTR_ISP,
+            ATTR_RESULT_URL,
+        ):
+            return state_str
+        try:
+            return float(state_str)
+        except (ValueError, TypeError):
             return None
-        return self.coordinator.data.get(self._key)
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if self.coordinator.data is None or self._key not in self.coordinator.data:
+            if (last_sensor_data := await self.async_get_last_sensor_data()) is not None:
+                self._restored_value = last_sensor_data.native_value
+            elif (last_state := await self.async_get_last_state()) is not None:
+                if last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+                    self._restored_value = self._parse_restored_state(last_state.state)
+
+            if self._restored_value is not None:
+                if self.coordinator.data is None:
+                    self.coordinator.data = {}
+                self.coordinator.data[self._key] = self._restored_value
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.data is not None and self._key in self.coordinator.data:
+            self._restored_value = self.coordinator.data[self._key]
+        super()._handle_coordinator_update()

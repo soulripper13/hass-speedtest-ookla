@@ -1,3 +1,16 @@
+# v3.1.3
+
+This release preserves the most recent speed test results across Home Assistant restarts instead of resetting sensor states to `unknown` (#42).
+
+Lovelace gauges, custom cards, and charts retain previous test data upon restart until the next scheduled or manual test completes, avoiding `NaN` or empty displays.
+
+## Highlights
+
+- **State Restoration Across Restarts**: Sensors now inherit from `RestoreSensor` and persist previous test metrics across Home Assistant reboots.
+- **Seamless Upgrade Migration**: Backward-compatible fallback restores last-known state from entity registry for existing installations upon updating.
+- **Preserved State During Manual Runs**: Running `run_speedtest` no longer blanks out sensor states to `unknown` while the test runs.
+- **Card Defensive Hardening**: Bundled custom cards (`minimal`, `compact`, `dashboard`, `card`, `card-simple`) gracefully handle unknown/unavailable states without rendering `NaN`.
+
 # v3.1.2
 
 This release adds timing diagnostics to help compare results across hosts and

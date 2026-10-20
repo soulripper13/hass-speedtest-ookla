@@ -98,15 +98,17 @@ class OoklaSpeedtestCompact extends HTMLElement {
     const ulEl = this.shadowRoot.querySelector('.ul-value');
     const pingEl = this.shadowRoot.querySelector('.ping-value');
 
-    if (dlEl) dlEl.textContent = dl ? Math.round(dl) : '--';
-    if (ulEl) ulEl.textContent = ul ? Math.round(ul) : '--';
-    if (pingEl) pingEl.textContent = ping ? Math.round(ping) : '--';
+    if (dlEl) dlEl.textContent = (typeof dl === 'number' && !isNaN(dl)) ? Math.round(dl) : '--';
+    if (ulEl) ulEl.textContent = (typeof ul === 'number' && !isNaN(ul)) ? Math.round(ul) : '--';
+    if (pingEl) pingEl.textContent = (typeof ping === 'number' && !isNaN(ping)) ? Math.round(ping) : '--';
   }
 
   _getState(entityId) {
     if (!this._hass || !entityId) return null;
     const state = this._hass.states[entityId];
-    return state ? parseFloat(state.state) || null : null;
+    if (!state || state.state === 'unknown' || state.state === 'unavailable') return null;
+    const val = parseFloat(state.state);
+    return isNaN(val) ? null : val;
   }
   
   _showMoreInfo(entityId) {

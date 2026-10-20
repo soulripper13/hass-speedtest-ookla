@@ -331,7 +331,10 @@ class OoklaSpeedtestDashboard extends HTMLElement {
     if (!el) return;
     let val = this._getState(entityId);
     if (val !== null) {
-      if (round) val = Math.round(parseFloat(val));
+      if (round) {
+        const num = parseFloat(val);
+        val = !isNaN(num) ? Math.round(num) : val;
+      }
       el.setAttribute('data-val', val + suffix);
     } else {
       el.setAttribute('data-val', '--' + suffix);
@@ -436,7 +439,8 @@ class OoklaSpeedtestDashboard extends HTMLElement {
   _getState(entityId) {
     if (!this._hass || !entityId) return null;
     const state = this._hass.states[entityId];
-    return state ? state.state : null;
+    if (!state || state.state === 'unknown' || state.state === 'unavailable') return null;
+    return state.state;
   }
 
   _formatTime(dateStr) {

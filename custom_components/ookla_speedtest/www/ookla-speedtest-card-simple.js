@@ -86,9 +86,13 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
     const ulEl = this.shadowRoot.querySelector('.ul');
     const pingEl = this.shadowRoot.querySelector('.ping');
     
-    if (dlEl) dlEl.textContent = download ? download.state + ' Mbps' : '--';
-    if (ulEl) ulEl.textContent = upload ? upload.state + ' Mbps' : '--';
-    if (pingEl) pingEl.textContent = ping ? ping.state + ' ms' : '--';
+    const dlValid = download && download.state !== 'unknown' && download.state !== 'unavailable';
+    const ulValid = upload && upload.state !== 'unknown' && upload.state !== 'unavailable';
+    const pingValid = ping && ping.state !== 'unknown' && ping.state !== 'unavailable';
+
+    if (dlEl) dlEl.textContent = dlValid ? download.state + ' Mbps' : '--';
+    if (ulEl) ulEl.textContent = ulValid ? upload.state + ' Mbps' : '--';
+    if (pingEl) pingEl.textContent = pingValid ? ping.state + ' ms' : '--';
   }
 
   render() {

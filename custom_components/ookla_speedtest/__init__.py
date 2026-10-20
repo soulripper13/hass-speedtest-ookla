@@ -604,7 +604,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             coordinators = list(hass.data[DOMAIN].values())
 
         for item in coordinators:
-            item.async_set_updated_data(None)
             await item.async_request_refresh()
 
     hass.services.async_register(

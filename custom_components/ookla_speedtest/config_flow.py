@@ -13,6 +13,7 @@ from homeassistant.helpers import selector
 
 from .binary_manager import async_setup_speedtest
 from .const import (
+    CONF_AUTO_REGISTER_CARDS,
     CONF_ENABLE_COMPLIANCE_SENSORS,
     CONF_ENABLE_LATENCY_SENSORS,
     CONF_FALLBACK_TO_CLOSEST,
@@ -25,6 +26,7 @@ from .const import (
     CONF_SOURCE_IP,
     CONF_START_TIME,
     CONF_SURVEY_NOTIFICATION_VERSION,
+    DEFAULT_AUTO_REGISTER_CARDS,
     DEFAULT_ENABLE_COMPLIANCE,
     DEFAULT_ENABLE_LATENCY,
     DEFAULT_FALLBACK_TO_CLOSEST,
@@ -109,6 +111,9 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_FALLBACK_TO_CLOSEST, default=DEFAULT_FALLBACK_TO_CLOSEST
                 ): bool,
+                vol.Optional(
+                    CONF_AUTO_REGISTER_CARDS, default=DEFAULT_AUTO_REGISTER_CARDS
+                ): bool,
             }
         )
 
@@ -186,6 +191,9 @@ class OoklaSpeedtestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             CONF_FALLBACK_TO_CLOSEST: user_input.get(
                 CONF_FALLBACK_TO_CLOSEST, DEFAULT_FALLBACK_TO_CLOSEST
+            ),
+            CONF_AUTO_REGISTER_CARDS: user_input.get(
+                CONF_AUTO_REGISTER_CARDS, DEFAULT_AUTO_REGISTER_CARDS
             ),
             # New installations do not need an update announcement.
             CONF_SURVEY_NOTIFICATION_VERSION: SURVEY_NOTIFICATION_VERSION,
@@ -291,6 +299,10 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                 CONF_FALLBACK_TO_CLOSEST, DEFAULT_FALLBACK_TO_CLOSEST
             ),
         )
+        current_auto_register_cards = self.config_entry.options.get(
+            CONF_AUTO_REGISTER_CARDS,
+            self.config_entry.data.get(CONF_AUTO_REGISTER_CARDS, True),
+        )
 
         schema = vol.Schema(
             {
@@ -342,6 +354,10 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_FALLBACK_TO_CLOSEST,
                     default=current_fallback_to_closest,
+                ): bool,
+                vol.Optional(
+                    CONF_AUTO_REGISTER_CARDS,
+                    default=current_auto_register_cards,
                 ): bool,
             }
         )
@@ -425,6 +441,9 @@ class OoklaSpeedtestOptionsFlow(config_entries.OptionsFlow):
                 ),
                 CONF_FALLBACK_TO_CLOSEST: user_input.get(
                     CONF_FALLBACK_TO_CLOSEST, DEFAULT_FALLBACK_TO_CLOSEST
+                ),
+                CONF_AUTO_REGISTER_CARDS: user_input.get(
+                    CONF_AUTO_REGISTER_CARDS, current_auto_register_cards
                 ),
             },
         )

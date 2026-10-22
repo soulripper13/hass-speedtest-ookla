@@ -11,7 +11,11 @@ from homeassistant.components.lovelace import DOMAIN as LOVELACE_DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_call_later
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    SERVICE_REGISTER_CARD_RESOURCES,
+    SERVICE_REMOVE_CARD_RESOURCES,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -102,23 +106,38 @@ async def async_remove_cards_and_resources(hass: HomeAssistant) -> None:
             
         # 2. Unregister resources from Lovelace
         lovelace = hass.data.get(LOVELACE_DOMAIN)
-        if lovelace and hasattr(lovelace, "resources") and lovelace.resources.loaded:
-            resources = lovelace.resources
+        if not lovelace:
+            return
+
+        if not getattr(lovelace, "resources", None) or not lovelace.resources.loaded:
+            _LOGGER.debug(
+                "Lovelace resources not loaded for removal, retrying in 5 seconds"
+            )
+            async_call_later(
+                hass,
+                5,
+                lambda _: hass.async_create_task(
+                    async_remove_cards_and_resources(hass)
+                ),
+            )
+            return
+
+        resources = lovelace.resources
+
+        for card in CARDS:
+            base_url = f"/local/ookla_speedtest/{card}"
             
-            for card in CARDS:
-                base_url = f"/local/ookla_speedtest/{card}"
-                
-                # Find resource to remove
-                found_resource = None
-                for resource in resources.async_items():
-                    # Check base URL match (ignoring query params)
-                    if resource["url"].split("?")[0] == base_url:
-                        found_resource = resource
-                        break
-                
-                if found_resource:
-                    _LOGGER.info("Unregistering Lovelace resource: %s", base_url)
-                    await resources.async_delete_item(found_resource["id"])
+            # Find resource to remove
+            found_resource = None
+            for resource in resources.async_items():
+                # Check base URL match (ignoring query params)
+                if resource["url"].split("?")[0] == base_url:
+                    found_resource = resource
+                    break
+            
+            if found_resource:
+                _LOGGER.info("Unregistering Lovelace resource: %s", base_url)
+                await resources.async_delete_item(found_resource["id"])
                     
     except Exception as e:
         _LOGGER.error("Failed to remove cards/resources: %s", e)
@@ -176,17 +195,30 @@ async def async_register_cards(hass: HomeAssistant) -> None:
 
 
 async def async_register_resources_service(hass: HomeAssistant) -> None:
-    """Register a service to register Lovelace resources."""
+    """Register services to manage Lovelace card resources."""
     
     async def handle_register_resources(call):
-        """Handle the service call."""
+        """Handle manual registration service call."""
+        await async_setup_cards(hass)
         await async_register_cards(hass)
-    
-    hass.services.async_register(
-        DOMAIN,
-        "register_card_resources",
-        handle_register_resources,
-    )
+
+    async def handle_remove_resources(call):
+        """Handle manual removal service call."""
+        await async_remove_cards_and_resources(hass)
+
+    if not hass.services.has_service(DOMAIN, SERVICE_REGISTER_CARD_RESOURCES):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_REGISTER_CARD_RESOURCES,
+            handle_register_resources,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_REMOVE_CARD_RESOURCES):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_REMOVE_CARD_RESOURCES,
+            handle_remove_resources,
+        )
 
 
 def get_card_info():

@@ -62,6 +62,11 @@
 service: ookla_speedtest.run_speedtest
 ```
 - Optionally pass `entity_id` (recommended for cards) or `device_id` to run one configured test; if omitted, the service runs all configured tests.
+- Manually register or remove bundled Lovelace card resources at any time via:
+```yaml
+service: ookla_speedtest.register_card_resources
+service: ookla_speedtest.remove_card_resources
+```
 
 
 ## Installation
@@ -225,15 +230,16 @@ The cards have been completely redesigned with a modern **Glassmorphism** aesthe
 
 ### 🚀 Zero-Config Setup
 
-**Cards are automatically registered when Home Assistant starts!**
+**Cards can be automatically installed and registered when Home Assistant starts!**
 
 1. Install the integration
-2. Restart Home Assistant
-3. Go to your Dashboard → Edit Dashboard → Add Card
-4. Search for **"Ookla"**
-5. Select a card and configure it visually!
+2. Enable "Install & Register Lovelace Cards" during setup or via integration Options
+3. Restart Home Assistant
+4. Go to your Dashboard → Edit Dashboard → Add Card
+5. Search for **"Ookla"**
+6. Select a card and configure it visually!
 
-> **Note:** If cards don't appear immediately, you can force registration by calling the `ookla_speedtest.register_card_resources` service in Developer Tools, or simply refresh your browser cache.
+> **Note:** If you prefer not to have card files copied to `/config/www` or resources added automatically, uncheck the "Install & Register Lovelace Cards" option in the configuration or options flow. You can also manually register them at any time with `ookla_speedtest.register_card_resources` or clean them up with `ookla_speedtest.remove_card_resources`.
 
 ### 🎯 Visual Configuration
 

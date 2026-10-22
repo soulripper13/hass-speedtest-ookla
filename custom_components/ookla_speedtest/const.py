@@ -14,12 +14,14 @@ CONF_ISP_UL_SPEED = "isp_ul_speed"
 CONF_ENABLE_LATENCY_SENSORS = "enable_latency"
 CONF_ENABLE_COMPLIANCE_SENSORS = "enable_compliance"
 CONF_FALLBACK_TO_CLOSEST = "fallback_to_closest"
+CONF_AUTO_REGISTER_CARDS = "auto_register_cards"
 CONF_SURVEY_NOTIFICATION_VERSION = "survey_notification_version"
 
 DEFAULT_SCAN_INTERVAL = 1440  # minutes (24 hours)
 DEFAULT_ENABLE_LATENCY = False
 DEFAULT_ENABLE_COMPLIANCE = False
 DEFAULT_FALLBACK_TO_CLOSEST = False
+DEFAULT_AUTO_REGISTER_CARDS = False
 STARTUP_DELAY = 60  # seconds - delay before first speedtest in interval mode
 
 # One-time feedback survey notification
@@ -29,6 +31,8 @@ SURVEY_URL = "https://github.com/soulripper13/hass-speedtest-ookla/discussions/3
 
 # Service
 SERVICE_RUN_SPEEDTEST = "run_speedtest"
+SERVICE_REGISTER_CARD_RESOURCES = "register_card_resources"
+SERVICE_REMOVE_CARD_RESOURCES = "remove_card_resources"
 
 # Paths
 SPEEDTEST_BIN_PATH = "/config/custom_components/ookla_speedtest/bin/speedtest.bin"

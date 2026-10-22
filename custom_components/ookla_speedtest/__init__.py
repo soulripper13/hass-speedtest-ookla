@@ -48,6 +48,7 @@ from .const import (
     ATTR_UPLOAD_LATENCY_LOW,
     ATTR_UPLOAD_LATENCY_HIGH,
     ATTR_UPLOAD_LATENCY_JITTER,
+    CONF_AUTO_REGISTER_CARDS,
     CONF_FALLBACK_TO_CLOSEST,
     CONF_MANUAL,
     CONF_ISP_DL_SPEED,
@@ -61,6 +62,8 @@ from .const import (
     DEFAULT_FALLBACK_TO_CLOSEST,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    SERVICE_REGISTER_CARD_RESOURCES,
+    SERVICE_REMOVE_CARD_RESOURCES,
     SERVICE_RUN_SPEEDTEST,
     SPEEDTEST_BIN_PATH,
     STARTUP_DELAY,
@@ -130,20 +133,29 @@ def _async_show_survey_notification(
     )
 
 
-async def async_setup_cards_and_resources(hass: HomeAssistant) -> None:
+async def async_setup_cards_and_resources(
+    hass: HomeAssistant, auto_register: bool = True
+) -> None:
     """Set up custom cards and register resources.
     
     This function:
-    1. Copies card files to www folder for accessibility
-    2. Registers the service to add resources to dashboards
-    3. Automatically registers resources on startup
+    1. Registers services for manual resource registration and removal
+    2. If auto_register is True: copies card files to www folder and auto-registers resources on startup
+    3. If auto_register is False: cleans up card files from www and unregisters resources
     """
     try:
+        # Register services for manual resource registration and removal
+        await async_register_resources_service(hass)
+
+        if not auto_register:
+            _LOGGER.debug(
+                "Automatic card registration is disabled; cleaning up cards and resources"
+            )
+            await async_remove_cards_and_resources(hass)
+            return
+
         # Copy cards to www folder
         await async_setup_cards(hass)
-        
-        # Register service for manual resource registration
-        await async_register_resources_service(hass)
 
         # Auto-register resources when HA starts
         async def auto_register_resources(event):
@@ -152,14 +164,16 @@ async def async_setup_cards_and_resources(hass: HomeAssistant) -> None:
         if hass.is_running:
             await auto_register_resources(None)
         else:
-            hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, auto_register_resources)
-        
+            hass.bus.async_listen_once(
+                EVENT_HOMEASSISTANT_STARTED, auto_register_resources
+            )
+
         _LOGGER.info(
             "Ookla Speedtest cards are ready! "
             "Resources will be auto-registered on startup. "
             "Call service 'ookla_speedtest.register_card_resources' to manually register."
         )
-        
+
     except Exception as e:
         _LOGGER.error("Failed to set up cards: %s", e)
 
@@ -632,8 +646,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # Set up custom cards and register resources service
-    # Copies cards to www folder and provides service for auto-registration
-    await async_setup_cards_and_resources(hass)
+    # Respect user preference for automatic card and resource setup
+    auto_register_cards = entry.options.get(
+        CONF_AUTO_REGISTER_CARDS,
+        entry.data.get(CONF_AUTO_REGISTER_CARDS, True),
+    )
+    await async_setup_cards_and_resources(hass, auto_register=auto_register_cards)
 
     _async_show_survey_notification(hass, entry)
 
@@ -655,8 +673,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         if entry.entry_id in hass.data[DOMAIN]:
             hass.data[DOMAIN].pop(entry.entry_id)
-        if not hass.data[DOMAIN] and hass.services.has_service(DOMAIN, SERVICE_RUN_SPEEDTEST):
-            hass.services.async_remove(DOMAIN, SERVICE_RUN_SPEEDTEST)
+        if not hass.data[DOMAIN]:
+            if hass.services.has_service(DOMAIN, SERVICE_RUN_SPEEDTEST):
+                hass.services.async_remove(DOMAIN, SERVICE_RUN_SPEEDTEST)
+            if hass.services.has_service(DOMAIN, SERVICE_REGISTER_CARD_RESOURCES):
+                hass.services.async_remove(DOMAIN, SERVICE_REGISTER_CARD_RESOURCES)
+            if hass.services.has_service(DOMAIN, SERVICE_REMOVE_CARD_RESOURCES):
+                hass.services.async_remove(DOMAIN, SERVICE_REMOVE_CARD_RESOURCES)
 
     return unload_ok
 

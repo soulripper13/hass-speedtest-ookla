@@ -20,7 +20,13 @@ run_speedtest:
 register_card_resources:
   name: Register Card Resources
   description: >
-    Automatically register Ookla Speedtest card resources in all Lovelace dashboards.
+    Copies bundled card assets to /config/www/ookla_speedtest and registers Lovelace card resources.
     Run this service once after installation, then refresh your browser.
     Cards will be available in the "Add Card" picker.
+  fields: {}
+
+remove_card_resources:
+  name: Remove Card Resources
+  description: >
+    Removes bundled card assets from /config/www/ookla_speedtest and unregisters Lovelace card resources.
   fields: {}

@@ -16,7 +16,8 @@
           "isp_ul_speed": "ISP Upload Speed (Mbit/s)",
           "enable_latency": "Enable Extended Latency Sensors",
           "enable_compliance": "Enable Stability & Compliance Sensors",
-          "fallback_to_closest": "Fall Back to Closest Server"
+          "fallback_to_closest": "Fall Back to Closest Server",
+          "auto_register_cards": "Install & Register Lovelace Cards"
         },
         "data_description": {
           "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
@@ -30,7 +31,8 @@
           "isp_ul_speed": "Optional: Your rated upload speed from your ISP. Used to calculate 'Plan Compliance %'.",
           "enable_latency": "If enabled, creates additional sensors for detailed latency stats (min/max/iqm) for Ping, Download, and Upload.",
           "enable_compliance": "If enabled, creates sensors for Plan Compliance % (requires ISP speeds above) and Jitter stats.",
-          "fallback_to_closest": "When enabled with a specific server, each test tries that server first. If Ookla reports it unavailable, the test retries using the closest server."
+          "fallback_to_closest": "When enabled with a specific server, each test tries that server first. If Ookla reports it unavailable, the test retries using the closest server.",
+          "auto_register_cards": "When enabled, bundled dashboard card files are automatically copied to /config/www/ookla_speedtest and registered as Lovelace dashboard resources. When disabled, the card files and resources are removed."
         }
       }
     },
@@ -60,7 +62,8 @@
           "isp_ul_speed": "ISP Upload Speed (Mbit/s)",
           "enable_latency": "Enable Extended Latency Sensors",
           "enable_compliance": "Enable Stability & Compliance Sensors",
-          "fallback_to_closest": "Fall Back to Closest Server"
+          "fallback_to_closest": "Fall Back to Closest Server",
+          "auto_register_cards": "Install & Register Lovelace Cards"
         },
         "data_description": {
           "server_id": "Choose which server to test against. 'Closest Server' automatically selects the nearest server. Servers are sorted by distance.",
@@ -74,7 +77,8 @@
           "isp_ul_speed": "Optional: Your rated upload speed from your ISP. Used to calculate 'Plan Compliance %'.",
           "enable_latency": "If enabled, creates additional sensors for detailed latency stats (min/max/iqm) for Ping, Download, and Upload.",
           "enable_compliance": "If enabled, creates sensors for Plan Compliance % (requires ISP speeds above) and Jitter stats.",
-          "fallback_to_closest": "When enabled with a specific server, each test tries that server first. If Ookla reports it unavailable, the test retries using the closest server."
+          "fallback_to_closest": "When enabled with a specific server, each test tries that server first. If Ookla reports it unavailable, the test retries using the closest server.",
+          "auto_register_cards": "When enabled, bundled dashboard card files are automatically copied to /config/www/ookla_speedtest and registered as Lovelace dashboard resources. When disabled, the card files and resources are removed."
         }
       }
     },

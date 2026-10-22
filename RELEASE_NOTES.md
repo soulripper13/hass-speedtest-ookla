@@ -1,3 +1,14 @@
+# v3.1.4
+
+This release adds a configuration and options flow setting to control the automatic copying of card files to `/config/www` and the auto-registration of Lovelace resources (#43).
+
+## Highlights
+
+- **Configurable Card Installation**: Added an `auto_register_cards` setting ("Install & Register Lovelace Cards") to both initial setup and options flows.
+- **Clean Opt-Out & Resource Cleanup**: Disabling the option automatically cleans up copied card files from `/config/www/ookla_speedtest` and unregisters associated Lovelace dashboard resources.
+- **Manual Service Management**: Added the `ookla_speedtest.remove_card_resources` service alongside `ookla_speedtest.register_card_resources` for on-demand management.
+- **Smooth Upgrade Transition**: Existing installations retain cards by default unless explicitly disabled, avoiding disruption for current setups.
+
 # v3.1.3
 
 This release preserves the most recent speed test results across Home Assistant restarts instead of resetting sensor states to `unknown` (#42).

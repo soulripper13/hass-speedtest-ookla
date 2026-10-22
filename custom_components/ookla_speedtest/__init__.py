@@ -18,6 +18,7 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr, entity_registry as er, selector
 from homeassistant.helpers.event import (
     async_call_later,
@@ -475,7 +476,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     # Ensure binary is present and valid, download if missing
-    await async_setup_speedtest(hass)
+    try:
+        await async_setup_speedtest(hass)
+    except Exception as err:
+        raise ConfigEntryNotReady(
+            f"Failed to set up speedtest binary: {err}. Setup will be retried automatically."
+        ) from err
 
     # Get config from options first, fall back to data for backwards compatibility
     server_id = entry.options.get(

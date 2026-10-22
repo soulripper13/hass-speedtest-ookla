@@ -1,5 +1,7 @@
 """Constants for the Ookla Speedtest integration."""
 
+import os
+
 DOMAIN = "ookla_speedtest"
 
 # Configuration
@@ -35,7 +37,13 @@ SERVICE_REGISTER_CARD_RESOURCES = "register_card_resources"
 SERVICE_REMOVE_CARD_RESOURCES = "remove_card_resources"
 
 # Paths
-SPEEDTEST_BIN_PATH = "/config/custom_components/ookla_speedtest/bin/speedtest.bin"
+_PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+_LOCAL_BIN_PATH = os.path.join(_PACKAGE_DIR, "bin", "speedtest.bin")
+
+if os.path.exists(_LOCAL_BIN_PATH) or not os.path.exists("/config"):
+    SPEEDTEST_BIN_PATH = _LOCAL_BIN_PATH
+else:
+    SPEEDTEST_BIN_PATH = "/config/custom_components/ookla_speedtest/bin/speedtest.bin"
 
 # Sensor attributes
 ATTR_PING = "ping"

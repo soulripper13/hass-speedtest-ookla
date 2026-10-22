@@ -1,3 +1,14 @@
+# v3.1.5
+
+This release fixes an SSL handshake error (`UNEXPECTED_EOF_WHILE_READING`) when downloading the speedtest binary on modern Python environments (such as Python 3.14).
+
+## Highlights
+
+- **Native Async HTTP Client**: Migrated binary download from legacy `urllib.request.urlretrieve` to Home Assistant's managed `aiohttp` client session with modern TLS and browser-compatible headers.
+- **Robust Retry & Multi-Tier Fallbacks**: Added automatic retries with exponential backoff on transient network drops/SSL EOF resets, with fallbacks to system `curl` and `urllib`.
+- **Graceful Startup Recovery**: Setup failures during binary download now raise `ConfigEntryNotReady`, allowing Home Assistant to automatically retry initialization in the background rather than hard-failing the integration.
+- **Flexible Binary Path Resolution**: Improved binary path resolution to support custom HA installations and development environments alongside standard HA OS `/config`.
+
 # v3.1.4
 
 This release adds a configuration and options flow setting to control the automatic copying of card files to `/config/www` and the auto-registration of Lovelace resources (#43).

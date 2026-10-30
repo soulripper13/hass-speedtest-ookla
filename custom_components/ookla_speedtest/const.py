@@ -25,6 +25,7 @@ DEFAULT_ENABLE_COMPLIANCE = False
 DEFAULT_FALLBACK_TO_CLOSEST = False
 DEFAULT_AUTO_REGISTER_CARDS = False
 STARTUP_DELAY = 60  # seconds - delay before first speedtest in interval mode
+SPEEDTEST_TIMEOUT = 120  # seconds - hard limit for one speedtest CLI run
 
 # One-time feedback survey notification
 SURVEY_NOTIFICATION_ID = f"{DOMAIN}_speed_feedback_survey"

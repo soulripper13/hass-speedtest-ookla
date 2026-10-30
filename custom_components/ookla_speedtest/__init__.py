@@ -2,6 +2,8 @@
 
 import json
 import logging
+import os
+import signal
 import subprocess
 import time
 from datetime import timedelta
@@ -24,7 +26,7 @@ from homeassistant.helpers.event import (
     async_call_later,
     async_track_point_in_time,
 )
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -67,6 +69,7 @@ from .const import (
     SERVICE_REMOVE_CARD_RESOURCES,
     SERVICE_RUN_SPEEDTEST,
     SPEEDTEST_BIN_PATH,
+    SPEEDTEST_TIMEOUT,
     STARTUP_DELAY,
     SURVEY_NOTIFICATION_ID,
     SURVEY_NOTIFICATION_VERSION,
@@ -333,6 +336,8 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except (KeyError, TypeError) as e:
             _LOGGER.error("Unexpected data format in speedtest result: %s", e)
             return None
+        except UpdateFailed:
+            raise
         except Exception as e:
             _LOGGER.error(
                 "Unexpected error during speedtest: %s. Command: %s", e, " ".join(cmd)
@@ -360,14 +365,43 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         _LOGGER.debug("Starting Ookla speedtest: %s", " ".join(cmd))
 
         def _run() -> subprocess.CompletedProcess[str]:
-            return subprocess.run(
+            # Run in a new session so a wedged CLI (and any children it
+            # spawns) can be killed as a group instead of leaking forever.
+            proc = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                check=True,
+                start_new_session=True,
+            )
+            try:
+                stdout, stderr = proc.communicate(timeout=SPEEDTEST_TIMEOUT)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                proc.communicate()  # reap the killed child, never leave a zombie
+                raise
+            if proc.returncode != 0:
+                raise subprocess.CalledProcessError(
+                    proc.returncode, cmd, stdout, stderr
+                )
+            return subprocess.CompletedProcess(
+                cmd, proc.returncode, stdout, stderr
             )
 
-        process = await self.hass.async_add_executor_job(_run)
+        try:
+            process = await self.hass.async_add_executor_job(_run)
+        except subprocess.TimeoutExpired:
+            _LOGGER.error(
+                "Ookla speedtest timed out after %ss and was killed. Command: %s",
+                SPEEDTEST_TIMEOUT,
+                " ".join(cmd),
+            )
+            raise UpdateFailed(
+                f"Ookla speedtest timed out after {SPEEDTEST_TIMEOUT}s"
+            ) from None
         _LOGGER.debug(
             "Ookla speedtest completed in %.1fs (stdout=%d bytes)",
             time.monotonic() - started,

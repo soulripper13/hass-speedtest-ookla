@@ -1,3 +1,16 @@
+# v3.1.6
+
+This release introduces a hard timeout and process cleanup to terminate hung Ookla speedtest CLI processes (#44, #45).
+
+When network errors occurred (such as `Error: [101] Network unreachable`), the Ookla CLI could enter a tight userspace spin loop burning CPU indefinitely without exiting. Because previous versions executed the CLI synchronously in an executor thread without a timeout, the executor thread was blocked indefinitely, preventing the coordinator from completing updates and silently stopping future speed tests until Home Assistant was restarted.
+
+## Highlights
+
+- **120-Second Hard Timeout**: Speedtest CLI executions are now limited to 120 seconds, preventing runaway processes from hanging indefinitely.
+- **Process Group Termination & Zombie Cleanup**: Runs the CLI in its own session (`start_new_session=True`) and immediately sends `SIGKILL` to the entire process group on timeout expiry, followed by child reaping to prevent leaked or zombie processes.
+- **Graceful Coordinator Failure Recovery**: Timeout events raise `UpdateFailed`, notifying the coordinator of the failure and allowing Home Assistant to retry on the next scheduled polling interval without blocking the event loop or executor threads.
+- **Full Backward Compatibility**: Normal tests and server fallback behaviors on non-zero CLI exit codes (`CalledProcessError`) remain unchanged.
+
 # v3.1.5
 
 This release fixes an SSL handshake error (`UNEXPECTED_EOF_WHILE_READING`) when downloading the speedtest binary on modern Python environments (such as Python 3.14).

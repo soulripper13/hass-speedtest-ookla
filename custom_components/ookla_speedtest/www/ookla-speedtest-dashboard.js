@@ -126,6 +126,7 @@ class OoklaSpeedtestDashboard extends HTMLElement {
 
   connectedCallback() {
     this.render();
+    this.updateCard();
     // Fetch history immediately if hass is already available
     if (this._hass && this._config.show_charts) {
       this._fetchHistory();

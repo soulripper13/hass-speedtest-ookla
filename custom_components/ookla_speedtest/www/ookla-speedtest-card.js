@@ -76,6 +76,7 @@ class OoklaSpeedtestCard extends HTMLElement {
 
   connectedCallback() {
     this.render();
+    this.updateCard();
   }
 
   /**

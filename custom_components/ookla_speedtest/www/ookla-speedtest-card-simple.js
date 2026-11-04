@@ -27,13 +27,19 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
 
   static getStubConfig() {
     return {
-      type: "custom:ookla-speedtest-card-simple"
+      type: "custom:ookla-speedtest-card-simple",
+      entities: {
+        download: "sensor.ookla_speedtest_download",
+        upload: "sensor.ookla_speedtest_upload",
+        ping: "sensor.ookla_speedtest_ping"
+      }
     };
   }
 
   setConfig(config) {
-    this._config = config;
+    this._config = { ...OoklaSpeedtestCardSimple.getStubConfig(), ...config };
     this.render();
+    this.update();
   }
 
   set hass(hass) {
@@ -78,9 +84,10 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
   update() {
     if (!this._hass) return;
     
-    const download = this._hass.states['sensor.ookla_speedtest_download'];
-    const upload = this._hass.states['sensor.ookla_speedtest_upload'];
-    const ping = this._hass.states['sensor.ookla_speedtest_ping'];
+    const e = this._config.entities;
+    const download = this._hass.states[e.download];
+    const upload = this._hass.states[e.upload];
+    const ping = this._hass.states[e.ping];
     
     const dlEl = this.shadowRoot.querySelector('.dl');
     const ulEl = this.shadowRoot.querySelector('.ul');
@@ -171,8 +178,7 @@ class OoklaSpeedtestCardSimple extends HTMLElement {
           const entityId =
             this._config?.entities?.download ||
             this._config?.entities?.ping ||
-            this._config?.entities?.upload ||
-            'sensor.ookla_speedtest_download';
+            this._config?.entities?.upload;
           this._hass.callService('ookla_speedtest', 'run_speedtest', { entity_id: entityId });
           btn.textContent = 'Testing...';
           setTimeout(() => btn.textContent = 'GO', 3000);

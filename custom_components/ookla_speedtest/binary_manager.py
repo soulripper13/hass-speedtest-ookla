@@ -16,7 +16,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import SPEEDTEST_BIN_PATH
+from .const import DOMAIN, SPEEDTEST_BIN_PATH
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -133,6 +133,12 @@ def _check_existing_binary() -> bool:
     return False
 
 
+def _write_file(path: str, data: bytes) -> None:
+    """Write bytes to a file (runs in the executor)."""
+    with open(path, "wb") as f:
+        f.write(data)
+
+
 async def _async_download_file(
     hass: HomeAssistant,
     url: str,
@@ -164,9 +170,8 @@ async def _async_download_file(
                         raise RuntimeError(
                             f"HTTP status {resp.status} received when downloading from {url}"
                         )
-                    with open(dest_path, "wb") as f:
-                        async for chunk in resp.content.iter_chunked(64 * 1024):
-                            f.write(chunk)
+                    data = await resp.read()
+                    await hass.async_add_executor_job(_write_file, dest_path, data)
 
                 if os.path.isfile(dest_path) and os.path.getsize(dest_path) > 0:
                     _LOGGER.debug("Successfully downloaded binary archive via aiohttp")
@@ -333,20 +338,26 @@ async def async_setup_speedtest(hass: HomeAssistant) -> None:
     downloads the correct binary if missing or invalid using aiohttp/fallbacks,
     cleans up legacy files, and accepts the Ookla license/GDPR.
     """
-    # 1. Clean legacy files and check if existing binary is already valid
-    is_valid = await hass.async_add_executor_job(_check_existing_binary)
-    if is_valid:
-        return
+    # One setup at a time: concurrent entries must not download/replace the binary together.
+    lock = hass.data.setdefault(f"{DOMAIN}_binary_lock", asyncio.Lock())
+    async with lock:
+        # 1. Clean legacy files and check if existing binary is already valid
+        is_valid = await hass.async_add_executor_job(_check_existing_binary)
+        if is_valid:
+            return
 
-    # 2. Detect architecture
-    arch = detect_arch()
-    url = f"{DOWNLOAD_BASE}/ookla-speedtest-{SPEEDTEST_VERSION}-linux-{arch}.tgz"
-    _LOGGER.info("Setting up speedtest binary for %s from %s", arch, url)
+        # 2. Detect architecture
+        arch = detect_arch()
+        url = f"{DOWNLOAD_BASE}/ookla-speedtest-{SPEEDTEST_VERSION}-linux-{arch}.tgz"
+        _LOGGER.info("Setting up speedtest binary for %s from %s", arch, url)
 
-    # 3. Download tarball to temp directory
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tgz_path = os.path.join(tmpdir, "speedtest.tgz")
-        await _async_download_file(hass, url, tgz_path)
+        # 3. Download tarball to temp directory
+        tmpdir = await hass.async_add_executor_job(tempfile.mkdtemp)
+        try:
+            tgz_path = os.path.join(tmpdir, "speedtest.tgz")
+            await _async_download_file(hass, url, tgz_path)
 
-        # 4. Extract and install in executor
-        await hass.async_add_executor_job(_extract_and_install, tgz_path)
+            # 4. Extract and install in executor
+            await hass.async_add_executor_job(_extract_and_install, tgz_path)
+        finally:
+            await hass.async_add_executor_job(shutil.rmtree, tmpdir, True)

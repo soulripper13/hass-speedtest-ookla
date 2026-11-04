@@ -1,5 +1,6 @@
 """Initialize the Ookla Speedtest integration."""
 
+import asyncio
 import json
 import logging
 import os
@@ -210,6 +211,10 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.source_ip = (source_ip or "").strip() or None
         self.fallback_to_closest = fallback_to_closest
         self._unsub_schedule = None
+        # Shared across instances so tests never overlap and skew each other.
+        self._run_lock: asyncio.Lock = hass.data.setdefault(
+            f"{DOMAIN}_run_lock", asyncio.Lock()
+        )
 
         # If start_time is set, we handle scheduling manually to prevent drift and align to clock
         update_interval = None
@@ -253,7 +258,7 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             intervals = int(diff // self.scan_interval) + 1
             next_run += timedelta(minutes=intervals * self.scan_interval)
             
-        _LOGGER.debug("Scheduling next speedtest for %s", next_run)
+        _LOGGER.debug("Scheduling next speedtest for '%s' at %s", self.entry.title, next_run)
 
         if self._unsub_schedule:
             self._unsub_schedule()
@@ -265,6 +270,13 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_scheduled_refresh(self, _):
         """Refresh data."""
         await self.async_request_refresh()
+
+    async def async_shutdown(self) -> None:
+        """Cancel the aligned schedule so an unloaded entry stops running tests."""
+        if self._unsub_schedule:
+            self._unsub_schedule()
+            self._unsub_schedule = None
+        await super().async_shutdown()
 
     async def _async_update_data(self) -> dict[str, Any] | None:
         """Fetch new data from speedtest-cli."""
@@ -362,7 +374,7 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     ) -> subprocess.CompletedProcess[str]:
         """Run speedtest in the executor."""
         started = time.monotonic()
-        _LOGGER.debug("Starting Ookla speedtest: %s", " ".join(cmd))
+        _LOGGER.debug("Starting Ookla speedtest for '%s': %s", self.entry.title, " ".join(cmd))
 
         def _run() -> subprocess.CompletedProcess[str]:
             # Run in a new session so a wedged CLI (and any children it
@@ -392,7 +404,8 @@ class SpeedtestCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
 
         try:
-            process = await self.hass.async_add_executor_job(_run)
+            async with self._run_lock:
+                process = await self.hass.async_add_executor_job(_run)
         except subprocess.TimeoutExpired:
             _LOGGER.error(
                 "Ookla speedtest timed out after %ss and was killed. Command: %s",
@@ -574,6 +587,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         fallback_to_closest,
     )
     hass.data[DOMAIN][entry.entry_id] = coordinator
+    _LOGGER.debug(
+        "Instance '%s' (%s, source_ip=%s): manual=%s (options=%s, data=%s) interval=%s min start_time=%s",
+        entry.title, entry.entry_id, source_ip, manual,
+        entry.options.get(CONF_MANUAL), entry.data.get(CONF_MANUAL),
+        scan_interval, start_time,
+    )
+    # Arm the aligned schedule now so it doesn't depend on the startup run succeeding.
+    if not manual and start_time:
+        coordinator._schedule_next()
 
     # Register service to manually run a speed test
     async def run_speedtest_service(call: ServiceCall) -> None:
@@ -673,8 +695,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             """Schedule the first speedtest after HA has started."""
             # Wait for configured delay after HA startup before running first test
             async def run_first_refresh(_):
+                _LOGGER.debug("First scheduled refresh for '%s'", entry.title)
                 await coordinator.async_request_refresh()
 
+            _LOGGER.debug(
+                "First speedtest for '%s' in %ss", entry.title, STARTUP_DELAY
+            )
             async_call_later(hass, STARTUP_DELAY, run_first_refresh)
 
         # If HA is already started, schedule immediately; otherwise wait for start event
@@ -711,6 +737,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
+        coordinator = hass.data[DOMAIN].get(entry.entry_id)
+        if coordinator is not None:
+            await coordinator.async_shutdown()
         if entry.entry_id in hass.data[DOMAIN]:
             hass.data[DOMAIN].pop(entry.entry_id)
         if not hass.data[DOMAIN]:

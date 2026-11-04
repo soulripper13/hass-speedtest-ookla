@@ -54,6 +54,7 @@ class OoklaSpeedtestCompact extends HTMLElement {
 
   connectedCallback() {
     this.render();
+    this.updateCard();
   }
 
   /**
